@@ -1,0 +1,26 @@
+### Add to cart (guest)
+POST http://localhost:8080/api/order/cart/items
+Content-Type: application/json
+
+{
+  "productId": "11111111-1111-1111-1111-111111111111",
+  "qty": 1
+}
+
+### Checkout (guest)
+POST http://localhost:8080/api/order/checkout
+Idempotency-Key: test-key-123
+Content-Type: application/json
+
+{
+  "cartId": "11111111-1111-1111-1111-111111111111",
+  "email": "user@example.com",
+  "address": {
+    "line1": "Test Address",
+    "city": "Istanbul",
+    "country": "Turkey"
+  }
+}
+
+### Order detail
+GET http://localhost:8080/api/order/11111111-1111-1111-1111-111111111111

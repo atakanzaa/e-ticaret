@@ -1,0 +1,31 @@
+### Apply to become seller
+POST http://localhost:8080/api/seller/apply
+X-User-Roles: USER
+
+### My store
+GET http://localhost:8080/api/seller/me/store
+X-User-Roles: SELLER
+
+### Update store profile
+PUT http://localhost:8080/api/seller/me/store/profile
+Content-Type: application/json
+X-User-Roles: SELLER
+
+{
+  "name": "My Store",
+  "bio": "About my store",
+  "logoUrl": "http://example.com/logo.png"
+}
+
+### Admin - List Applications
+GET http://localhost:8080/api/seller/applications
+X-User-Roles: ADMIN
+
+### Admin - Approve/Reject Application
+PATCH http://localhost:8080/api/seller/applications/{{applicationId}}
+Content-Type: application/json
+X-User-Roles: ADMIN
+
+{
+  "status": "APPROVED"
+}

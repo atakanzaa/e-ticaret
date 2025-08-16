@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "ProductUpdatedEvent",
+  "required": ["eventId", "eventType", "occurredAt", "product"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "product.updated",
+      "description": "Type of the event"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the event occurred"
+    },
+    "product": {
+      "type": "object",
+      "required": ["id", "storeId", "name", "price", "currency", "stock", "categoryId", "isActive"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Product ID"
+        },
+        "storeId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Store ID this product belongs to"
+        },
+        "name": {
+          "type": "string",
+          "description": "Product name"
+        },
+        "price": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Product price"
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["TRY", "USD", "EUR"],
+          "default": "TRY"
+        },
+        "stock": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Available stock quantity"
+        },
+        "categoryId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Category ID"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the product is active for sale"
+        },
+        "attrs": {
+          "type": "object",
+          "description": "Product attributes like color, size, etc.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

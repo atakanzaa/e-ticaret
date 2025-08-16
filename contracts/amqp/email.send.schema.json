@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "EmailSendMessage",
+  "required": ["to", "subject", "html"],
+  "properties": {
+    "to": {
+      "type": "string",
+      "format": "email",
+      "description": "Recipient email address"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "html": {
+      "type": "string",
+      "description": "HTML content of the email"
+    },
+    "orderSummary": {
+      "type": "object",
+      "description": "Optional order summary for order-related emails",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "total": {
+          "type": "number",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "qty"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

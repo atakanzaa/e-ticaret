@@ -1,0 +1,12 @@
+### Init payment
+POST http://localhost:8080/api/payment/11111111-1111-1111-1111-111111111111/init
+
+### Iyzico webhook (mock)
+POST http://localhost:8080/api/payment/iyzico/webhook
+Content-Type: application/json
+
+{
+  "orderId": "11111111-1111-1111-1111-111111111111",
+  "status": "success",
+  "paymentId": "mock-payment-123"
+}

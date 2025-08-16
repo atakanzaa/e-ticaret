@@ -1,0 +1,5 @@
+### Search products
+GET http://localhost:8080/api/search?q=phone&type=product&page=0
+
+### Search stores
+GET http://localhost:8080/api/search?q=store&type=store&page=0

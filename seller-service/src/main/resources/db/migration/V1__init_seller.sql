@@ -1,0 +1,7 @@
+CREATE TABLE seller_applications (
+  id UUID PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL,
+  status VARCHAR(16) NOT NULL CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+

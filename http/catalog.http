@@ -1,0 +1,59 @@
+### Home
+GET http://localhost:8080/api/catalog/home?limit=24
+
+### Products list
+GET http://localhost:8080/api/catalog/products?category=&q=&min=&max=&attrs=color:red,size:M&sort=price,asc&page=1
+
+### Product detail
+GET http://localhost:8080/api/catalog/products/sample-slug
+
+### Store detail
+GET http://localhost:8080/api/catalog/stores/sample-store
+
+### Seller - My Store
+GET http://localhost:8080/api/catalog/my/store
+X-User-Roles: SELLER
+
+### Seller - Create Product
+POST http://localhost:8080/api/catalog/products
+Content-Type: application/json
+X-User-Roles: SELLER
+
+{
+  "name": "Sample Product",
+  "price": 199.90,
+  "currency": "TRY",
+  "stock": 10,
+  "categoryId": "11111111-1111-1111-1111-111111111111",
+  "attrs": {
+    "color": "red",
+    "size": "M"
+  }
+}
+
+### Seller - Presigned URLs
+POST http://localhost:8080/api/catalog/products/{{productId}}/images/presign
+Content-Type: application/json
+X-User-Roles: SELLER
+
+{
+  "count": 3
+}
+
+### Admin - Approve Store
+PATCH http://localhost:8080/api/catalog/stores/{{storeId}}/approve
+Content-Type: application/json
+X-User-Roles: ADMIN
+
+{
+  "isApproved": true
+}
+
+### Admin - Set Product Active
+PATCH http://localhost:8080/api/catalog/products/{{productId}}/active
+Content-Type: application/json
+X-User-Roles: ADMIN
+
+{
+  "isActive": false
+}

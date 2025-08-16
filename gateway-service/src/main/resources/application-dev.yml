@@ -1,0 +1,81 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://auth:8081/.well-known/jwks.json
+  cloud:
+    gateway:
+      routes:
+        # Auth Service Routes
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://auth:8081}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/api/auth/(?<segment>.*), /$\{segment}
+
+        # Catalog Service Routes
+        - id: catalog-service
+          uri: ${CATALOG_SERVICE_URL:http://catalog:8082}
+          predicates:
+            - Path=/api/catalog/**
+          filters:
+            - RewritePath=/api/catalog/(?<segment>.*), /$\{segment}
+
+        # Seller Service Routes
+        - id: seller-service
+          uri: ${SELLER_SERVICE_URL:http://seller:8083}
+          predicates:
+            - Path=/api/seller/**
+          filters:
+            - RewritePath=/api/seller/(?<segment>.*), /$\{segment}
+
+        # Review Service Routes
+        - id: review-service
+          uri: ${REVIEW_SERVICE_URL:http://review:8084}
+          predicates:
+            - Path=/api/review/**
+          filters:
+            - RewritePath=/api/review/(?<segment>.*), /$\{segment}
+
+        # Search Service Routes
+        - id: search-service
+          uri: ${SEARCH_SERVICE_URL:http://search:8085}
+          predicates:
+            - Path=/api/search/**
+          filters:
+            - RewritePath=/api/search/(?<segment>.*), /$\{segment}
+
+        # Order Service Routes
+        - id: order-service
+          uri: ${ORDER_PAYMENT_SERVICE_URL:http://orderpayment:8086}
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - RewritePath=/api/order/(?<segment>.*), /order/$\{segment}
+
+        # Payment Service Routes
+        - id: payment-service
+          uri: ${ORDER_PAYMENT_SERVICE_URL:http://orderpayment:8086}
+          predicates:
+            - Path=/api/payment/**
+          filters:
+            - RewritePath=/api/payment/(?<segment>.*), /payment/$\{segment}
+
+        # Notification Service Routes (mostly internal)
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
+          predicates:
+            - Path=/api/notify/**
+          filters:
+            - RewritePath=/api/notify/(?<segment>.*), /$\{segment}
+
+jwt:
+  secret: ${JWT_SECRET:e-ticaret-marketplace-secret-key-for-jwt-token-generation-2024}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG

@@ -1,0 +1,55 @@
+@startuml
+title E-Ticaret Event Flow
+
+actor User
+participant Gateway
+participant "Order-Payment" as OP
+participant Kafka
+participant Catalog
+participant Notification
+participant RabbitMQ
+participant MailHog
+
+== Order Flow ==
+User -> Gateway : POST /api/order/checkout
+Gateway -> OP : Forward request
+OP -> OP : Create order
+OP -> Kafka : Publish order.created
+note right: Order created with NEW status
+
+== Payment Flow ==
+User -> Gateway : POST /api/payment/{orderId}/init
+Gateway -> OP : Initialize payment
+OP -> OP : Generate checkout token
+OP -> User : Return checkout token
+
+User -> OP : Complete payment (webhook)
+OP -> OP : Verify payment
+alt Payment Success
+    OP -> Kafka : Publish payment.succeeded
+    OP -> RabbitMQ : Publish email.send
+else Payment Failed
+    OP -> Kafka : Publish payment.failed
+end
+
+== Stock Management ==
+Kafka -> Catalog : Consume payment.succeeded
+Catalog -> Catalog : Decrement product stock
+note right: Only after payment success
+
+== Notification ==
+RabbitMQ -> Notification : Consume email.send
+Notification -> MailHog : Send SMTP email
+note right: Order confirmation email
+
+== Review Flow ==
+User -> Gateway : POST /api/review
+Gateway -> "Review Service" : Add review
+"Review Service" -> "Review Service" : Store as pending
+
+"Admin" -> Gateway : PATCH /api/review/{id}/approve
+Gateway -> "Review Service" : Approve review
+"Review Service" -> Kafka : Publish review.approved
+Kafka -> Catalog : Update product rating
+
+@enduml

@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "StoreUpdatedEvent",
+  "required": ["eventId", "eventType", "occurredAt", "store"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "store.updated",
+      "description": "Type of the event"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when the event occurred"
+    },
+    "store": {
+      "type": "object",
+      "required": ["id", "name", "isApproved"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Store ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Store name"
+        },
+        "bio": {
+          "type": "string",
+          "description": "Store description/bio"
+        },
+        "isApproved": {
+          "type": "boolean",
+          "description": "Whether the store is approved by admin"
+        }
+      }
+    }
+  }
+}
