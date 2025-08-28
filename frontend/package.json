@@ -1,37 +1,34 @@
 {
-  "name": "shopclonetr",
+  "name": "vite-react-typescript-starter",
   "private": true,
-  "version": "1.0.0",
-  "description": " e-ticaret marketplace",
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "clean": "turbo run clean",
-    "type-check": "turbo run type-check",
-    "postinstall": "pnpm --filter @shopclonetr/db run db:generate",
-    "db:push": "turbo run db:push",
-    "db:studio": "turbo run db:studio",
-    "db:seed": "turbo run db:seed",
-    "db:migrate": "turbo run db:migrate",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.344.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.1"
   },
   "devDependencies": {
-    "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/typography": "^0.5.16",
-    "@turbo/gen": "^1.12.4",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39",
-    "prettier": "^3.2.5",
-    "tailwindcss": "^3.4.6",
-    "turbo": "^1.12.4"
-  },
-  "packageManager": "pnpm@8.15.6",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+    "@eslint/js": "^9.9.1",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^9.9.1",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.11",
+    "globals": "^15.9.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^8.3.0",
+    "vite": "^5.4.2"
+  }
 }

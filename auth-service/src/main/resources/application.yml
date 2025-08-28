@@ -20,6 +20,11 @@ spring:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: ${SPRING_FLYWAY_LOCATIONS:classpath:db/migration}
     baseline-on-migrate: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:admin}
+    password: ${SPRING_RABBITMQ_PASSWORD:admin}
 
 server:
   port: ${SERVER_PORT:8081}
@@ -37,8 +42,16 @@ jwt:
   secret: ${JWT_SECRET:e-ticaret-marketplace-secret-key-for-jwt-token-generation-2024}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  kid: ${JWT_KID:auth-rs256-1}
+
+google:
+  oauth:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/auth/google/callback}
 
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
     com.auth_service: ${LOGGING_LEVEL_COM_AUTH_SERVICE:INFO}
+    "[org.springframework.security]": ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY:INFO}

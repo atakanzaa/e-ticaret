@@ -1,0 +1,21 @@
+{
+  "smtp_bind_addr": "0.0.0.0:1025",
+  "api_bind_addr": "0.0.0.0:8025",
+  "ui_bind_addr": "0.0.0.0:8025",
+  "hostname": "e-ticaret-mailhog",
+  "storage": "maildir",
+  "maildir_path": "/maildir",
+  "ui_web_path": "",
+  "cors_origin": "*",
+  "auth_file": "",
+  "invite_jim": false,
+  "monkey_jim": false,
+  "outgoing_smtp": {},
+  "jim_linkspeed_affect": 1.0,
+  "jim_disconnect_chance": 0.005,
+  "jim_accept_chance": 0.99,
+  "jim_linkspeed_min": 1.0,
+  "jim_linkspeed_max": 10000.0,
+  "jim_reject_chance": 0.01,
+  "jim_reject_auth": 0.05
+}

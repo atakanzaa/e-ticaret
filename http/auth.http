@@ -17,6 +17,15 @@ Content-Type: application/json
   "password": "secret123"
 }
 
+### Google OAuth Login/Register
+POST http://localhost:8080/api/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "GOOGLE_ID_TOKEN_HERE",
+  "isRegistration": false
+}
+
 ### Me
 GET http://localhost:8080/api/auth/me
 X-User-Id: {{userId}}

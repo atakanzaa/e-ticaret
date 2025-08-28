@@ -14,12 +14,12 @@ volumes:
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: e-ticaret-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
@@ -35,7 +35,7 @@ services:
 
   # Zookeeper for Kafka
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
+    image: confluentinc/cp-zookeeper:7.6.0
     container_name: e-ticaret-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -54,7 +54,7 @@ services:
 
   # Kafka
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: confluentinc/cp-kafka:7.6.0
     container_name: e-ticaret-kafka
     depends_on:
       zookeeper:
@@ -82,11 +82,12 @@ services:
 
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    image: rabbitmq:3.13-management-alpine
     container_name: e-ticaret-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-admin}
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_VHOST: /
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -106,8 +107,8 @@ services:
     container_name: e-ticaret-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -133,9 +134,7 @@ services:
 
   # Gateway Service
   gateway:
-    build:
-      context: ../gateway-service
-      dockerfile: Dockerfile
+    image: e-ticaret/gateway-service:latest
     container_name: e-ticaret-gateway
     env_file:
       - ../env/dev/gateway.env
@@ -153,9 +152,7 @@ services:
 
   # Auth Service
   auth:
-    build:
-      context: ../auth-service
-      dockerfile: Dockerfile
+    image: e-ticaret/auth-service:latest
     container_name: e-ticaret-auth
     env_file:
       - ../env/dev/auth.env
@@ -174,9 +171,7 @@ services:
 
   # Catalog Service
   catalog:
-    build:
-      context: ../catalog-service
-      dockerfile: Dockerfile
+    image: e-ticaret/catalog-service:latest
     container_name: e-ticaret-catalog
     env_file:
       - ../env/dev/catalog.env
@@ -199,9 +194,7 @@ services:
 
   # Seller Service
   seller:
-    build:
-      context: ../seller-service
-      dockerfile: Dockerfile
+    image: e-ticaret/seller-service:latest
     container_name: e-ticaret-seller
     env_file:
       - ../env/dev/seller.env
@@ -220,9 +213,7 @@ services:
 
   # Review Service
   review:
-    build:
-      context: ../review-service
-      dockerfile: Dockerfile
+    image: e-ticaret/review-service:latest
     container_name: e-ticaret-review
     env_file:
       - ../env/dev/review.env
@@ -243,9 +234,7 @@ services:
 
   # Search Service
   search:
-    build:
-      context: ../search-service
-      dockerfile: Dockerfile
+    image: e-ticaret/search-service:latest
     container_name: e-ticaret-search
     env_file:
       - ../env/dev/search.env
@@ -266,9 +255,7 @@ services:
 
   # Order Payment Service
   orderpayment:
-    build:
-      context: ../order-payment-service
-      dockerfile: Dockerfile
+    image: e-ticaret/order-payment-service:latest
     container_name: e-ticaret-orderpayment
     env_file:
       - ../env/dev/order-payment.env
@@ -291,9 +278,7 @@ services:
 
   # Notification Service
   notification:
-    build:
-      context: ../notification-service
-      dockerfile: Dockerfile
+    image: e-ticaret/notification-service:latest
     container_name: e-ticaret-notification
     env_file:
       - ../env/dev/notification.env
@@ -307,7 +292,7 @@ services:
     networks:
       - e-ticaret-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8087/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

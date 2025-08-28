@@ -3,13 +3,54 @@ spring:
     name: gateway-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://auth:8081/.well-known/jwks.json}
   cloud:
     gateway:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+      routes:
+        # Auth Service Routes
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://auth:8081}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/api/auth/(?<segment>.*), /$\{segment}
+        
+        # Catalog Service Routes
+        - id: catalog-service
+          uri: ${CATALOG_SERVICE_URL:http://catalog:8082}
+          predicates:
+            - Path=/api/catalog/**
+          filters:
+            - RewritePath=/api/catalog/(?<segment>.*), /$\{segment}
+            
+        # Order Service Routes
+        - id: order-service
+          uri: ${ORDER_PAYMENT_SERVICE_URL:http://orderpayment:8086}
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - RewritePath=/api/order/(?<segment>.*), /order/$\{segment}
+            
+        # Payment Service Routes
+        - id: payment-service
+          uri: ${ORDER_PAYMENT_SERVICE_URL:http://orderpayment:8086}
+          predicates:
+            - Path=/api/payment/**
+          filters:
+            - RewritePath=/api/payment/(?<segment>.*), /payment/$\{segment}
       globalcors:
         corsConfigurations:
           '[/**]':
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
             allowedOrigins:
               - "http://localhost:3000"
               - "http://localhost:8080"
@@ -20,6 +61,7 @@ spring:
               - DELETE
               - PATCH
               - OPTIONS
+              - HEAD
             allowedHeaders:
               - "*"
             allowCredentials: true
@@ -27,6 +69,9 @@ spring:
               - "X-Total-Count"
               - "X-Page-Number"
               - "X-Page-Size"
+              - "Authorization"
+              - "Content-Type"
+            maxAge: 3600
       discovery:
         locator:
           enabled: false
@@ -46,4 +91,4 @@ management:
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
-    org.springframework.cloud.gateway: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CLOUD_GATEWAY:INFO}
+    "[org.springframework.cloud.gateway]": ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CLOUD_GATEWAY:INFO}

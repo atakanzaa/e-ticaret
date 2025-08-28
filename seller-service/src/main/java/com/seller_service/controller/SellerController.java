@@ -1,43 +1,53 @@
 package com.seller_service.controller;
 
+import com.seller_service.service.StoreService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/")
 public class SellerController {
 
+    private final StoreService storeService;
+
+    public SellerController(StoreService storeService) {
+        this.storeService = storeService;
+    }
+
     @PostMapping("/api/seller/apply")
-    public ResponseEntity<Map<String, Object>> apply() {
-        // TODO: create seller application for current user
-        return ResponseEntity.ok(Map.of("status", "PENDING"));
+    public ResponseEntity<Map<String, Object>> apply(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+        UUID uid = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
+        return ResponseEntity.ok(storeService.createApplication(uid));
     }
 
     @GetMapping("/api/seller/me/store")
-    public ResponseEntity<Map<String, Object>> myStore() {
-        // TODO: return store info for current seller
-        return ResponseEntity.ok(Map.of());
+    public ResponseEntity<Map<String, Object>> myStore(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+        UUID uid = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
+        return ResponseEntity.ok(storeService.myStore(uid));
     }
 
     @PutMapping("/api/seller/me/store/profile")
-    public ResponseEntity<Map<String, Object>> updateStoreProfile(@RequestBody Map<String, Object> body) {
-        // TODO: update store profile
-        return ResponseEntity.ok(Map.of("updated", true));
+    public ResponseEntity<Map<String, Object>> updateStoreProfile(@RequestHeader(value = "X-User-Id", required = false) String userId,
+                                                                  @RequestBody Map<String, Object> body) {
+        UUID uid = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
+        return ResponseEntity.ok(storeService.updateProfile(uid, body));
     }
 
     @GetMapping("/api/seller/applications")
     public ResponseEntity<List<Map<String, Object>>> listApplications() {
-        // TODO: admin list
-        return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(storeService.listApplications());
     }
 
     @PatchMapping("/api/seller/applications/{id}")
     public ResponseEntity<Map<String, Object>> updateApplication(@PathVariable String id, @RequestBody Map<String, Object> body) {
-        // TODO: admin approve/reject
-        return ResponseEntity.ok(Map.of("id", id, "status", body.getOrDefault("status", "PENDING")));
+        String status = String.valueOf(body.getOrDefault("status", "PENDING"));
+        Optional<Map<String, Object>> updated = storeService.updateStatus(UUID.fromString(id), status);
+        return updated.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 }
 

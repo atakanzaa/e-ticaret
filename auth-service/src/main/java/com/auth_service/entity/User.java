@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
-import io.hypersistence.utils.hibernate.type.array.StringArrayType;
+import java.util.List;
+import java.util.ArrayList;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -32,9 +32,10 @@ public class User {
     @Column(name = "password_hash")
     private String passwordHash;
     
-    @Type(StringArrayType.class)
-    @Column(columnDefinition = "text[]", nullable = false)
-    private String[] roles = new String[]{"USER"};
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role", nullable = false)
+    private List<String> roles = new ArrayList<>(List.of("USER"));
     
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;

@@ -37,21 +37,37 @@ e-ticaret/
 
 ### Gereksinimler
 
-- Java 21
-- Maven 3.8+
 - Docker & Docker Compose
 - Node.js 18+ (frontend için)
 
 ### Kurulum ve Çalıştırma
 
-1. **Tüm servisleri derle:**
+#### **Yöntem 1: Otomatik (Önerilen)**
+
+1. **Tüm sistemi başlat:**
    ```bash
-   mvn clean package -DskipTests
+   # Windows
+   start-system.bat
+   
+   # Linux/Mac
+   ./start-system.sh
    ```
 
-2. **Docker ile tüm altyapı ve servisleri başlat:**
+#### **Yöntem 2: Manuel**
+
+1. **Docker image'ları oluştur:**
    ```bash
-   docker compose -f docker/docker-compose.yml --env-file env/dev/.root.env up -d --build
+   # Windows
+   build-all-images.bat
+   
+   # Linux/Mac  
+   ./build-all-images.sh
+   ```
+
+2. **Servisleri başlat:**
+   ```bash
+   cd docker
+   docker-compose up -d
    ```
 
 3. **Frontend'i başlat (ayrı terminal):**
@@ -61,10 +77,30 @@ e-ticaret/
    npm run dev
    ```
 
+   **Google OAuth Yapılandırması (isteğe bağlı):**
+   - Google ile giriş yapmak için [Google Cloud Console](https://console.cloud.google.com/) üzerinden OAuth 2.0 Client ID oluşturun
+   - Frontend klasöründe `.env.local` dosyası oluşturun:
+     ```
+     VITE_API_BASE_URL=http://localhost:8080
+     VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+     ```
+
 4. **Servislerin sağlık durumunu kontrol et:**
    - Gateway: http://localhost:8080/actuator/health
    - Auth: http://localhost:8081/actuator/health
    - Diğer servisler için port numaralarını yukarıdaki listeden kontrol edin
+
+### 🐳 Docker Image'ları
+
+Projede her servis için ayrı Docker image'ı bulunur:
+- `e-ticaret/gateway-service:latest`
+- `e-ticaret/auth-service:latest`
+- `e-ticaret/catalog-service:latest`
+- `e-ticaret/seller-service:latest`
+- `e-ticaret/review-service:latest`
+- `e-ticaret/search-service:latest`
+- `e-ticaret/order-payment-service:latest`
+- `e-ticaret/notification-service:latest`
 
 ## 🔐 Roller
 

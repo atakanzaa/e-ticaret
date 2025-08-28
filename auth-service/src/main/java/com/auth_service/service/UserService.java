@@ -12,8 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -24,12 +24,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailPublisher emailPublisher;
     
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         // Check if user already exists
         if (userRepository.existsByEmailAndIsDeletedFalse(request.getEmail())) {
-            throw new RuntimeException("User with email already exists");
+            // Surface a clear 409 to the controller layer
+            throw new UserServiceException("User with email already exists", 409);
         }
         
         // Create new user
@@ -37,13 +39,42 @@ public class UserService {
                 .email(request.getEmail())
                 .name(request.getName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .roles(new String[]{"USER"})
+                .roles(List.of("USER"))
                 .build();
         
         user = userRepository.save(user);
         
         // Generate tokens
-        String jwt = jwtUtil.generateToken(user.getId(), user.getEmail(), Arrays.asList(user.getRoles()));
+        String jwt = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRoles());
+        String refresh = jwtUtil.generateRefreshToken(user.getId());
+        
+        AuthResponse response = AuthResponse.builder()
+                .id(user.getId())
+                .jwt(jwt)
+                .refresh(refresh)
+                .build();
+
+        // Send welcome/verification email
+        emailPublisher.publishEmail(Map.of(
+                "to", user.getEmail(),
+                "subject", "Hoş geldin, %s!".formatted(user.getName()),
+                "html", EmailTemplates.welcome(user.getName())
+        ));
+
+        return response;
+    }
+    
+    @Transactional(readOnly = true)
+    public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
+                .orElseThrow(() -> new UserServiceException("Invalid credentials", 401));
+        
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new UserServiceException("Invalid credentials", 401);
+        }
+        
+        // Generate tokens
+        String jwt = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRoles());
         String refresh = jwtUtil.generateRefreshToken(user.getId());
         
         return AuthResponse.builder()
@@ -52,20 +83,36 @@ public class UserService {
                 .refresh(refresh)
                 .build();
     }
-    
-    @Transactional(readOnly = true)
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-        
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
-        }
-        
-        // Generate tokens
-        String jwt = jwtUtil.generateToken(user.getId(), user.getEmail(), Arrays.asList(user.getRoles()));
+
+    @Transactional
+    public void changePassword(UUID userId, String newPassword) {
+        User user = userRepository.findActiveById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        // Send email
+        emailPublisher.publishEmail(Map.of(
+                "to", user.getEmail(),
+                "subject", "Şifren güncellendi",
+                "html", EmailTemplates.passwordChanged(user.getName())
+        ));
+    }
+
+    @Transactional
+    public AuthResponse loginOrRegisterOauth(String email, String nameFallback) {
+        User user = userRepository.findByEmailAndIsDeletedFalse(email)
+                .orElseGet(() -> {
+                    User u = User.builder()
+                            .email(email)
+                            .name(nameFallback)
+                            .roles(List.of("USER"))
+                            .build();
+                    return userRepository.save(u);
+                });
+
+        String jwt = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRoles());
         String refresh = jwtUtil.generateRefreshToken(user.getId());
-        
+
         return AuthResponse.builder()
                 .id(user.getId())
                 .jwt(jwt)
@@ -82,7 +129,7 @@ public class UserService {
                 .id(user.getId())
                 .email(user.getEmail())
                 .name(user.getName())
-                .roles(Arrays.asList(user.getRoles()))
+                .roles(user.getRoles())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
@@ -103,7 +150,7 @@ public class UserService {
                 .id(user.getId())
                 .email(user.getEmail())
                 .name(user.getName())
-                .roles(Arrays.asList(user.getRoles()))
+                .roles(user.getRoles())
                 .createdAt(user.getCreatedAt())
                 .build());
     }
@@ -122,7 +169,7 @@ public class UserService {
         User user = userRepository.findActiveById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        user.setRoles(roles.toArray(new String[0]));
+        user.setRoles(roles);
         userRepository.save(user);
     }
 }

@@ -1,8 +1,8 @@
 package com.auth_service.security;
 
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
@@ -18,18 +18,24 @@ import java.util.UUID;
 @Component
 public class JwtUtil {
     
-    @Value("${jwt.secret}")
-    private String secret;
+    private final RsaKeyProvider rsaKeyProvider;
     
     @Value("${jwt.expiration}")
     private Long expiration;
     
     @Value("${jwt.refresh-expiration}")
     private Long refreshExpiration;
+
+    @Value("${jwt.kid:auth-rs256-1}")
+    private String keyId;
+
+    public JwtUtil(RsaKeyProvider rsaKeyProvider) {
+        this.rsaKeyProvider = rsaKeyProvider;
+    }
     
     public String generateToken(UUID userId, String email, List<String> roles) {
         try {
-            JWSSigner signer = new MACSigner(secret);
+            JWSSigner signer = new RSASSASigner(rsaKeyProvider.getPrivateKey());
             
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(userId.toString())
@@ -39,7 +45,11 @@ public class JwtUtil {
                     .expirationTime(new Date(System.currentTimeMillis() + expiration))
                     .build();
             
-            SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .type(JOSEObjectType.JWT)
+                    .keyID(keyId)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claimsSet);
             signedJWT.sign(signer);
             
             return signedJWT.serialize();
@@ -51,7 +61,7 @@ public class JwtUtil {
     
     public String generateRefreshToken(UUID userId) {
         try {
-            JWSSigner signer = new MACSigner(secret);
+            JWSSigner signer = new RSASSASigner(rsaKeyProvider.getPrivateKey());
             
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(userId.toString())
@@ -60,7 +70,11 @@ public class JwtUtil {
                     .expirationTime(new Date(System.currentTimeMillis() + refreshExpiration))
                     .build();
             
-            SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .type(JOSEObjectType.JWT)
+                    .keyID(keyId)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claimsSet);
             signedJWT.sign(signer);
             
             return signedJWT.serialize();
@@ -73,7 +87,7 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
-            JWSVerifier verifier = new MACVerifier(secret);
+            JWSVerifier verifier = new RSASSAVerifier(rsaKeyProvider.getPublicKey());
             
             if (!signedJWT.verify(verifier)) {
                 return false;

@@ -23,7 +23,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.isDeleted = false ORDER BY u.createdAt DESC")
     org.springframework.data.domain.Page<User> findAllActive(org.springframework.data.domain.Pageable pageable);
     
-    @Query("SELECT u FROM User u WHERE u.isDeleted = false AND :role = ANY(u.roles) ORDER BY u.createdAt DESC")
+    @Query(value = "SELECT * FROM users u WHERE u.is_deleted = false AND :role = ANY(u.roles) ORDER BY u.created_at DESC",
+           countQuery = "SELECT count(*) FROM users u WHERE u.is_deleted = false AND :role = ANY(u.roles)",
+           nativeQuery = true)
     org.springframework.data.domain.Page<User> findByRole(@Param("role") String role, org.springframework.data.domain.Pageable pageable);
     
     @Query("SELECT u FROM User u WHERE u.isDeleted = false AND (LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')))")
