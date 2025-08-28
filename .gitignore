@@ -1,3 +1,6 @@
+# =========================
+# Java / JVM
+# =========================
 # Compiled class file
 *.class
 
@@ -19,10 +22,12 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# virtual machine crash logs
 hs_err_pid*
 
+# =========================
 # Maven
+# =========================
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -34,13 +39,17 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+# =========================
 # IntelliJ IDEA
+# =========================
 .idea/
 *.iws
 *.iml
 *.ipr
 
+# =========================
 # Eclipse
+# =========================
 .apt_generated
 .classpath
 .factorypath
@@ -49,51 +58,69 @@ buildNumber.properties
 .springBeans
 .sts4-cache
 
+# =========================
 # NetBeans
+# =========================
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
+# =========================
 # VS Code
+# =========================
 .vscode/
 
-# Node
+# =========================
+# Node / Next.js
+# =========================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-store/
-
-# Next.js
 frontend/.next/
 frontend/out/
 frontend/.vercel
 frontend/*.tsbuildinfo
 frontend/next-env.d.ts
 
+# =========================
 # Environment files
+# =========================
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# Secret config files
+auth-service/src/main/resources/application-*.yml
+env/**/*.env
+
+# =========================
 # OS files
+# =========================
 .DS_Store
 Thumbs.db
 
+# =========================
 # Docker volumes
+# =========================
 docker/volumes/
 
 # MinIO data
 minio-data/
 
+# =========================
 # Test results
+# =========================
 test-results/
 
+# =========================
 # Temporary files
+# =========================
 *.tmp
 *.temp
 *.swp
@@ -112,7 +139,6 @@ test-results/
 **/.env
 **/.env.local
 **/.env.*.local
-.vscode/
 **/.idea/
 **/.DS_Store
 Thumbs.db
