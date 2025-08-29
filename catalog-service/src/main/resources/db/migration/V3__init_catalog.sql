@@ -20,13 +20,16 @@ CREATE TABLE products (
   name VARCHAR(200) NOT NULL,
   slug VARCHAR(200) UNIQUE NOT NULL,
   price NUMERIC(12,2) NOT NULL,
-  currency CHAR(3) NOT NULL,
+  currency VARCHAR(3) NOT NULL,
   stock INT NOT NULL,
   category_id UUID NOT NULL,
   rating_avg NUMERIC(3,2) NOT NULL DEFAULT 0,
   rating_count INT NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  description TEXT,
+  image_url TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP
 );
 
 CREATE TABLE product_images (

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Mail, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { User as AppUser } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { dispatch } = useApp();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -82,37 +85,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       localStorage.setItem('auth_token', authData.jwt);
       localStorage.setItem('refresh_token', authData.refresh);
 
-      // Fetch user profile
-      let meRes = await fetch(`${baseUrl}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${authData.jwt}` },
-      });
-
-      if (!meRes.ok) {
-        meRes = await fetch(`http://localhost:8081/me`, {
-          headers: { 'X-User-Id': authData.id },
-        });
-      }
-
-      if (!meRes.ok) {
-        throw new Error('Failed to load user profile');
-      }
-
-      const me: { id: string; email: string; name: string; roles: string[] } = await meRes.json();
-      const role: AppUser['role'] = (me.roles || []).includes('ADMIN')
-        ? 'admin'
-        : (me.roles || []).includes('SELLER')
-        ? 'seller'
-        : 'customer';
-
-      const user: AppUser = {
-        id: me.id,
-        name: me.name,
-        email: me.email,
-        role,
-      };
-
-      dispatch({ type: 'SET_USER', payload: user });
+      const me = await api.me();
+      dispatch({ type: 'SET_USER', payload: me });
       onClose();
+      navigate('/dashboard');
     } catch (error) {
       console.error('Google Sign-In Error:', error);
       // Optionally add user-facing error handling here
@@ -146,38 +122,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       localStorage.setItem('auth_token', authData.jwt);
       localStorage.setItem('refresh_token', authData.refresh);
 
-      // Fetch current user through gateway (Authorization header required)
-      let meRes = await fetch(`${baseUrl}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${authData.jwt}` },
-      });
-
-      // Fallback: call auth-service directly if gateway JWT validation is not configured in dev
-      if (!meRes.ok) {
-        meRes = await fetch(`http://localhost:8081/me`, {
-          headers: { 'X-User-Id': authData.id },
-        });
-      }
-
-      if (!meRes.ok) {
-        throw new Error('Failed to load user profile');
-      }
-
-      const me: { id: string; email: string; name: string; roles: string[] } = await meRes.json();
-      const role: AppUser['role'] = (me.roles || []).includes('ADMIN')
-        ? 'admin'
-        : (me.roles || []).includes('SELLER')
-        ? 'seller'
-        : 'customer';
-
-      const user: AppUser = {
-        id: me.id,
-        name: me.name,
-        email: me.email,
-        role,
-      };
-
-      dispatch({ type: 'SET_USER', payload: user });
+      const me = await api.me();
+      dispatch({ type: 'SET_USER', payload: me });
       onClose();
+      navigate('/dashboard');
 
       // Reset form
       setFormData({ name: '', email: '', password: '' });

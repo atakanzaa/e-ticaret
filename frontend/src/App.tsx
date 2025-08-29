@@ -3,12 +3,17 @@ import { AppProvider, useApp } from './context/AppContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { User } from './types';
+import { api } from './api/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import SellerPage from './pages/SellerPage';
 import AdminPage from './pages/AdminPage';
+import SellerDashboard from './pages/SellerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import DashboardRouter from './pages/DashboardRouter';
 
 function AppContent() {
   const { dispatch } = useApp();
@@ -17,56 +22,17 @@ function AppContent() {
     // Check if user is already authenticated
     const token = localStorage.getItem('auth_token');
     const refreshToken = localStorage.getItem('refresh_token');
-
-    if (token && refreshToken) {
-      // Try to fetch user profile with existing token
-      const fetchUserProfile = async () => {
-        try {
-          const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
-
-          let meRes = await fetch(`${baseUrl}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          // Fallback: call auth-service directly if gateway JWT validation fails
-          if (!meRes.ok) {
-            meRes = await fetch(`http://localhost:8081/me`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-          }
-
-          if (!meRes.ok) {
-            // Token might be expired, clear localStorage
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
-            return;
-          }
-
-          const me: { id: string; email: string; name: string; roles: string[] } = await meRes.json();
-          const role: User['role'] = (me.roles || []).includes('ADMIN')
-            ? 'admin'
-            : (me.roles || []).includes('SELLER')
-            ? 'seller'
-            : 'customer';
-
-          const user: User = {
-            id: me.id,
-            name: me.name,
-            email: me.email,
-            role,
-          };
-
-          dispatch({ type: 'SET_USER', payload: user });
-        } catch (error) {
-          console.error('Failed to restore user session:', error);
-          // Clear invalid tokens
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-        }
-      };
-
-      fetchUserProfile();
-    }
+    if (!token || !refreshToken) return;
+    const restore = async () => {
+      try {
+        const me = await api.me();
+        dispatch({ type: 'SET_USER', payload: me });
+      } catch (e) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+      }
+    };
+    restore();
   }, [dispatch]);
 
   return (
@@ -74,9 +40,47 @@ function AppContent() {
       <Header />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/seller" element={<SellerPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
+        <Route
+          path="/seller"
+          element={
+            <ProtectedRoute roles={['seller', 'admin']}>
+              <SellerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/seller/dashboard"
+          element={
+            <ProtectedRoute roles={['seller', 'admin']}>
+              <SellerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute roles={['customer', 'seller', 'admin']}>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/orders" element={<OrdersPage />} />
       </Routes>
       <Footer />

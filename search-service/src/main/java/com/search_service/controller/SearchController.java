@@ -6,14 +6,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import com.search_service.service.SearchService;
+
 @RestController
 @RequestMapping("/")
 public class SearchController {
 
+    private final SearchService searchService;
+
+    public SearchController(SearchService searchService) {
+        this.searchService = searchService;
+    }
+
     @GetMapping("/api/search")
     public ResponseEntity<List<Map<String, Object>>> search(@RequestParam String q, @RequestParam(defaultValue = "product") String type, @RequestParam(defaultValue = "0") int page) {
-        // TODO: perform FTS search on search_products/search_stores
-        return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(searchService.search(q, type, page));
     }
 }
 

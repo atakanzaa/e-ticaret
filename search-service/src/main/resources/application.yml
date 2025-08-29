@@ -38,3 +38,7 @@ logging:
     root: ${LOGGING_LEVEL_ROOT:INFO}
     com.search_service: ${LOGGING_LEVEL_COM_SEARCH_SERVICE:INFO}
 
+search:
+  default-limit: ${SEARCH_DEFAULT_LIMIT:20}
+  max-limit: ${SEARCH_MAX_LIMIT:100}
+

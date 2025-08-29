@@ -32,6 +32,13 @@ const Header: React.FC = () => {
     }
   };
 
+  const dashboardLink = useMemo(() => {
+    if (!state.user) return '/';
+    if (state.user.role === 'admin') return '/admin/dashboard';
+    if (state.user.role === 'seller') return '/seller/dashboard';
+    return '/profile';
+  }, [state.user]);
+
   const cartItemsCount = state.cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
@@ -71,11 +78,8 @@ const Header: React.FC = () => {
                   </div>
                 )}
               </div>
-              {state.user?.role === 'seller' && (
-                <Link to="/seller" className="text-gray-700 hover:text-blue-600 transition-colors">Seller</Link>
-              )}
-              {state.user?.role === 'admin' && (
-                <Link to="/admin" className="text-gray-700 hover:text-blue-600 transition-colors">Admin</Link>
+              {state.user && (
+                <Link to={dashboardLink} className="text-gray-700 hover:text-blue-600 transition-colors">Dashboard</Link>
               )}
             </nav>
 
@@ -105,6 +109,7 @@ const Header: React.FC = () => {
                   </button>
                   {isProfileOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
+                      <Link to={dashboardLink} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Dashboard</Link>
                       <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
                       <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Orders</Link>
                       <button
@@ -113,6 +118,7 @@ const Header: React.FC = () => {
                           localStorage.removeItem('refresh_token');
                           dispatch({ type: 'SET_USER', payload: null });
                           setIsProfileOpen(false);
+                          navigate('/');
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
