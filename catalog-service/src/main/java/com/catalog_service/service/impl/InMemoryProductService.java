@@ -103,6 +103,35 @@ public class InMemoryProductService implements ProductService {
 		p.setActive(isActive);
 		return p;
 	}
+
+	@Override
+	public boolean decrementStock(UUID productId, int quantity) {
+		Product p = products.get(productId);
+		if (p == null) {
+			throw new NoSuchElementException("Product not found");
+		}
+
+		if (p.getStock() < quantity) {
+			return false;
+		}
+
+		p.setStock(p.getStock() - quantity);
+		return true;
+	}
+
+	@Override
+	public java.util.List<Product> getAllActive() {
+		return products.values().stream()
+				.filter(Product::isActive)
+				.collect(java.util.stream.Collectors.toList());
+	}
+
+	@Override
+	public java.util.List<Product> getByStoreId(UUID storeId) {
+		return products.values().stream()
+				.filter(product -> product.getStoreId() != null && product.getStoreId().equals(storeId))
+				.collect(java.util.stream.Collectors.toList());
+	}
 }
 
 

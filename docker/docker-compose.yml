@@ -1,298 +1,153 @@
 version: '3.8'
 
-networks:
-  e-ticaret-net:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  kafka_data:
-  zookeeper_data:
-  rabbitmq_data:
-  minio_data:
-
 services:
-  # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
-    container_name: e-ticaret-postgres
+    image: postgres:14
     environment:
+      POSTGRES_DB: eticaret
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
-      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Zookeeper for Kafka
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    container_name: e-ticaret-zookeeper
+    image: confluentinc/cp-zookeeper:7.4.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: echo stat | nc localhost 2181
-      interval: 10s
-      timeout: 10s
-      retries: 3
 
-  # Kafka
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: e-ticaret-kafka
+    image: confluentinc/cp-kafka:7.4.0
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
+    ports:
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    ports:
-      - "9092:9092"
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: kafka-topics --bootstrap-server localhost:9092 --list
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
-  # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: e-ticaret-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
-      RABBITMQ_DEFAULT_VHOST: /
+    image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # MinIO (S3-compatible storage)
-  minio:
-    image: minio/minio:latest
-    container_name: e-ticaret-minio
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  # MailHog (SMTP testing)
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: e-ticaret-mailhog
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
-    networks:
-      - e-ticaret-net
-
-  # Gateway Service
-  gateway:
-    image: e-ticaret/gateway-service:latest
-    container_name: e-ticaret-gateway
-    env_file:
-      - ../env/dev/gateway.env
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
 
   # Auth Service
   auth:
-    image: e-ticaret/auth-service:latest
-    container_name: e-ticaret-auth
-    env_file:
-      - ../env/dev/auth.env
+    build: ../auth-service
     ports:
       - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - postgres
+      - rabbitmq
+      - kafka
+
+  # Order Payment Service
+  order-payment:
+    build: ../order-payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=order_payment
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin
+      # iyzico sandbox credentials
+      IYZICO_API_BASE: https://sandbox-api.iyzipay.com
+      IYZICO_API_KEY: sandbox-Krg04h0IF0kWcTi9RlzB87ILNPfCc5iW
+      IYZICO_SECRET_KEY: sandbox-lBrmq0iCUw9DrPju07tXNHkNjOJ5ehvq
+      IYZICO_CALLBACK_URL: http://localhost:8086/api/payment/webhook/iyzico
+      IYZICO_CURRENCY: TRY
+      IYZICO_LOCALE: tr
+      # Kafka Topics
+      KAFKA_TOPICS_ORDER_CREATED: order_created
+      KAFKA_TOPICS_PAYMENT_SUCCEEDED: payment_succeeded
+    depends_on:
+      - postgres
+      - kafka
+      - rabbitmq
 
   # Catalog Service
   catalog:
-    image: e-ticaret/catalog-service:latest
-    container_name: e-ticaret-catalog
-    env_file:
-      - ../env/dev/catalog.env
+    build: ../catalog-service
     ports:
       - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=catalog
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_RABBITMQ_HOST: rabbitmq
     depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - postgres
+      - kafka
+      - rabbitmq
 
   # Seller Service
   seller:
-    image: e-ticaret/seller-service:latest
-    container_name: e-ticaret-seller
-    env_file:
-      - ../env/dev/seller.env
+    build: ../seller-service
     ports:
       - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=seller
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin
+      CATALOG_SERVICE_URL: http://catalog:8082
     depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - postgres
+      - kafka
+      - rabbitmq
+      - catalog
 
-  # Review Service
-  review:
-    image: e-ticaret/review-service:latest
-    container_name: e-ticaret-review
-    env_file:
-      - ../env/dev/review.env
+  # Gateway Service
+  gateway:
+    build: ../gateway-service
     ports:
-      - "8084:8084"
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      AUTH_SERVICE_URL: http://auth:8081
+      CATALOG_SERVICE_URL: http://catalog:8082
+      SELLER_SERVICE_URL: http://seller:8083
+      ORDER_PAYMENT_SERVICE_URL: http://order-payment:8086
+      JWT_JWK_SET_URI: http://auth:8081/.well-known/jwks.json
     depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - auth
+      - catalog
+      - seller
+      - order-payment
 
-  # Search Service
-  search:
-    image: e-ticaret/search-service:latest
-    container_name: e-ticaret-search
-    env_file:
-      - ../env/dev/search.env
-    ports:
-      - "8085:8085"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Order Payment Service
-  orderpayment:
-    image: e-ticaret/order-payment-service:latest
-    container_name: e-ticaret-orderpayment
-    env_file:
-      - ../env/dev/order-payment.env
-    ports:
-      - "8086:8086"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Notification Service
-  notification:
-    image: e-ticaret/notification-service:latest
-    container_name: e-ticaret-notification
-    env_file:
-      - ../env/dev/notification.env
-    ports:
-      - "8087:8087"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mailhog:
-        condition: service_started
-    networks:
-      - e-ticaret-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8087/actuator/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+volumes:
+  postgres_data:

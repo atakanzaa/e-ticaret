@@ -176,4 +176,44 @@ public class JpaProductService implements ProductService {
         model.setCreatedAt(entity.getCreatedAt());
         return model;
     }
+
+    @Override
+    @Transactional
+    public boolean decrementStock(UUID productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (product.getStock() < quantity) {
+            log.warn("Insufficient stock for product {}: requested {}, available {}",
+                    productId, quantity, product.getStock());
+            return false;
+        }
+
+        product.setStock(product.getStock() - quantity);
+        Product saved = productRepository.save(product);
+        log.info("Decremented stock for product {} by {} units. New stock: {}",
+                productId, quantity, saved.getStock());
+
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<com.catalog_service.service.model.Product> getAllActive() {
+        java.util.List<Product> products = productRepository.findByIsActiveTrue();
+        return products.stream()
+                .map(this::convertToModel)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<com.catalog_service.service.model.Product> getByStoreId(UUID storeId) {
+        java.util.List<Product> products = productRepository.findAll().stream()
+                .filter(product -> product.getStoreId().equals(storeId))
+                .collect(java.util.stream.Collectors.toList());
+        return products.stream()
+                .map(this::convertToModel)
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

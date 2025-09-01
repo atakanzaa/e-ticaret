@@ -30,21 +30,14 @@ spring:
           filters:
             - RewritePath=/api/catalog/(?<segment>.*), /$\{segment}
             
-        # Order Service Routes
-        - id: order-service
-          uri: ${ORDER_PAYMENT_SERVICE_URL:http://orderpayment:8086}
+        # Order Payment Service Routes
+        - id: order-payment-service
+          uri: ${ORDER_PAYMENT_SERVICE_URL:http://order-payment:8086}
           predicates:
-            - Path=/api/order/**
+            - Path=/api/order/**,/api/payment/**
           filters:
-            - RewritePath=/api/order/(?<segment>.*), /order/$\{segment}
-            
-        # Payment Service Routes
-        - id: payment-service
-          uri: ${ORDER_PAYMENT_SERVICE_URL:http://orderpayment:8086}
-          predicates:
-            - Path=/api/payment/**
-          filters:
-            - RewritePath=/api/payment/(?<segment>.*), /payment/$\{segment}
+            - RewritePath=/api/order/(?<segment>.*), /$\{segment}
+            - RewritePath=/api/payment/(?<segment>.*), /$\{segment}
       globalcors:
         corsConfigurations:
           '[/**]':

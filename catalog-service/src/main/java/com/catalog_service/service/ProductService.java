@@ -36,6 +36,12 @@ public interface ProductService {
 	void delete(UUID id);
 
 	Product setActive(UUID id, boolean isActive);
+
+	boolean decrementStock(UUID productId, int quantity);
+
+	List<Product> getAllActive();
+
+	List<Product> getByStoreId(UUID storeId);
 }
 
 

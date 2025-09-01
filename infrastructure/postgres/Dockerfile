@@ -4,7 +4,7 @@ FROM postgres:16-alpine
 # Set custom environment variables
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=123456
-ENV POSTGRES_DB=postgres
+ENV POSTGRES_DB=eticaret
 
 # Copy initialization scripts
 COPY init-databases.sql /docker-entrypoint-initdb.d/

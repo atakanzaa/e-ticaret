@@ -28,6 +28,7 @@ public class SellerController {
 
     private final StoreService storeService;
     private final ProductService productService;
+    private final CatalogServiceClient catalogServiceClient;
 
     // Store management endpoints
     @PostMapping("/api/seller/apply")
@@ -158,10 +159,10 @@ public class SellerController {
     @GetMapping("/api/seller/stats")
     public ResponseEntity<Map<String, Object>> getSellerStats(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        
+
         UUID sellerId = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
         log.info("Getting stats for seller: {}", sellerId);
-        
+
         try {
             long activeProductCount = productService.getActiveProductCount(sellerId);
             Map<String, Object> stats = Map.of(
@@ -173,6 +174,25 @@ public class SellerController {
             log.error("Error getting stats for seller {}: {}", sellerId, e.getMessage());
             throw new RuntimeException("Failed to get seller stats: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/api/sellers/active")
+    public ResponseEntity<List<Map<String, Object>>> getActiveSellers() {
+        log.info("Getting active sellers list");
+
+        try {
+            // Get active stores from catalog service
+            List<Map<String, Object>> activeSellers = getActiveStoresFromCatalog();
+            return ResponseEntity.ok(activeSellers);
+        } catch (Exception e) {
+            log.error("Error getting active sellers: {}", e.getMessage());
+            // Fallback to empty list instead of throwing exception
+            return ResponseEntity.ok(List.of());
+        }
+    }
+
+    private List<Map<String, Object>> getActiveStoresFromCatalog() {
+        return catalogServiceClient.getActiveStores();
     }
 }
 

@@ -1,15 +1,26 @@
--- Create databases for each service
-CREATE DATABASE auth_db;
-CREATE DATABASE catalog_db;
-CREATE DATABASE seller_db;
-CREATE DATABASE review_db;
-CREATE DATABASE search_db;
-CREATE DATABASE order_payment_db;
+-- E-Ticaret Sistemi Veritabanı Başlatma Scripti
+-- PostgreSQL init script for e-ticaret microservices
+-- Tek DB: eticaret
 
--- Grant all privileges to the postgres user
-GRANT ALL PRIVILEGES ON DATABASE auth_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE catalog_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE seller_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE review_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE search_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE order_payment_db TO postgres;
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS catalog;
+CREATE SCHEMA IF NOT EXISTS seller;
+CREATE SCHEMA IF NOT EXISTS review;
+CREATE SCHEMA IF NOT EXISTS search;
+CREATE SCHEMA IF NOT EXISTS order_payment;
+
+GRANT ALL PRIVILEGES ON SCHEMA auth TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA catalog TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA seller TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA review TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA search TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA order_payment TO postgres;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA catalog GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA seller GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA review GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA search GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA order_payment GRANT ALL ON TABLES TO postgres;
+
+ALTER DATABASE eticaret SET search_path TO auth, catalog, seller, review, search, order_payment, public;

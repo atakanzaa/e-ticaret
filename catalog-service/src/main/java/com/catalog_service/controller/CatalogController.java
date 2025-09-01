@@ -20,12 +20,12 @@ public class CatalogController {
         this.productService = productService;
     }
 
-    @GetMapping("/api/catalog/home")
+    @GetMapping("/home")
     public ResponseEntity<List<Product>> home(@RequestParam(defaultValue = "24") int limit) {
         return ResponseEntity.ok(productService.home(limit));
     }
 
-    @GetMapping("/api/catalog/products")
+    @GetMapping("/products")
     public ResponseEntity<List<Product>> products(@RequestParam(required = false) String category,
                                                   @RequestParam(required = false) String q,
                                                   @RequestParam(required = false) String min,
@@ -37,7 +37,7 @@ public class CatalogController {
         return ResponseEntity.ok(productService.list(category, q, sort, page));
     }
 
-    @GetMapping("/api/catalog/products/{slug}")
+    @GetMapping("/products/{slug}")
     public ResponseEntity<Product> productDetail(@PathVariable String slug) {
         return productService.findBySlug(slug)
                 .map(ResponseEntity::ok)
@@ -45,12 +45,12 @@ public class CatalogController {
     }
 
     // Seller endpoints (no auth in demo)
-    @GetMapping("/api/catalog/my/store")
+    @GetMapping("/my/store")
     public ResponseEntity<Map<String, Object>> myStore() {
         return ResponseEntity.ok(Map.of("name", "My Store", "isApproved", true));
     }
 
-    @PostMapping("/api/catalog/products")
+    @PostMapping("/products")
     public ResponseEntity<Map<String, Object>> createProduct(@RequestBody Map<String, Object> body) {
         String name = (String) body.getOrDefault("name", "Unnamed");
         double price = Double.parseDouble(String.valueOf(body.getOrDefault("price", 0)));
@@ -64,7 +64,7 @@ public class CatalogController {
         return ResponseEntity.ok(Map.of("id", p.getId().toString(), "slug", p.getSlug()));
     }
 
-    @PutMapping("/api/catalog/products/{id}")
+    @PutMapping("/products/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable String id, @RequestBody Map<String, Object> body) {
         try {
             Product p = productService.update(UUID.fromString(id),
@@ -81,18 +81,74 @@ public class CatalogController {
         }
     }
 
-    @DeleteMapping("/api/catalog/products/{id}")
+    @DeleteMapping("/products/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable String id) {
         productService.delete(UUID.fromString(id));
         return ResponseEntity.noContent().build();
     }
 
     // Admin endpoints
-    @PatchMapping("/api/catalog/products/{id}/active")
+    @PatchMapping("/products/{id}/active")
     public ResponseEntity<Map<String, Object>> setProductActive(@PathVariable String id, @RequestBody Map<String, Object> body) {
         boolean isActive = Boolean.parseBoolean(String.valueOf(body.getOrDefault("isActive", true)));
         Product p = productService.setActive(UUID.fromString(id), isActive);
         return ResponseEntity.ok(Map.of("id", p.getId().toString(), "isActive", p.isActive()));
+    }
+
+    // Store endpoints for inter-service communication
+    @GetMapping("/stores/active")
+    public ResponseEntity<List<Map<String, Object>>> getActiveStores() {
+        List<Product> activeProducts = productService.getAllActive();
+
+        // Group products by storeId and create store summaries
+        Map<UUID, List<Product>> productsByStore = activeProducts.stream()
+                .collect(Collectors.groupingBy(Product::getStoreId));
+
+        List<Map<String, Object>> activeStores = productsByStore.entrySet().stream()
+                .map(entry -> {
+                    UUID storeId = entry.getKey();
+                    List<Product> products = entry.getValue();
+                    long totalProducts = products.size();
+
+                    // Get first product to extract store info (this is a simplified approach)
+                    // In a real scenario, you'd have a Store entity with proper store info
+                    Product firstProduct = products.get(0);
+
+                    return Map.<String, Object>of(
+                        "id", storeId.toString(),
+                        "name", "Store " + storeId.toString().substring(0, 8), // Placeholder name
+                        "email", "store-" + storeId.toString().substring(0, 8) + "@example.com", // Placeholder email
+                        "activeSince", "2024-01-01", // Placeholder date
+                        "totalProducts", totalProducts,
+                        "isActive", true
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(activeStores);
+    }
+
+    @GetMapping("/stores/{storeId}")
+    public ResponseEntity<Map<String, Object>> getStoreById(@PathVariable String storeId) {
+        UUID storeUUID = UUID.fromString(storeId);
+        List<Product> storeProducts = productService.getByStoreId(storeUUID);
+
+        if (storeProducts.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        long activeProducts = storeProducts.stream()
+                .filter(Product::isActive)
+                .count();
+
+        return ResponseEntity.ok(Map.of(
+            "id", storeId,
+            "name", "Store " + storeId.substring(0, 8),
+            "email", "store-" + storeId.substring(0, 8) + "@example.com",
+            "totalProducts", storeProducts.size(),
+            "activeProducts", activeProducts,
+            "isActive", activeProducts > 0
+        ));
     }
 }
 

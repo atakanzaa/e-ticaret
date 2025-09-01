@@ -4,7 +4,7 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order_payment_db}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/eticaret?currentSchema=order_payment}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:123456}
     driver-class-name: org.postgresql.Driver
@@ -16,6 +16,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        default_schema: order_payment
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: ${SPRING_FLYWAY_LOCATIONS:classpath:db/migration}
@@ -33,17 +34,32 @@ management:
     health:
       show-details: always
 
-spring:
-  kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-  rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:guest}
-    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+rabbitmq:
+  host: ${SPRING_RABBITMQ_HOST:localhost}
+  port: ${SPRING_RABBITMQ_PORT:5672}
+  username: ${SPRING_RABBITMQ_USERNAME:admin}
+  password: ${SPRING_RABBITMQ_PASSWORD:admin}
 
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
     com.order_payment_service: ${LOGGING_LEVEL_COM_ORDER_PAYMENT_SERVICE:INFO}
+
+# Iyzico Configuration
+iyzico:
+  api:
+    base-url: ${IYZICO_API_BASE:https://sandbox-api.iyzipay.com}
+    key: ${IYZICO_API_KEY:sandbox-xxx}
+    secret: ${IYZICO_SECRET_KEY:sandbox-xxx}
+    callback-url: ${IYZICO_CALLBACK_URL:http://localhost:8086/api/payment/3ds/callback}
+  payment:
+    currency: ${IYZICO_CURRENCY:TRY}
+    locale: ${IYZICO_LOCALE:tr}
+
+# Kafka Topics
+kafka:
+  bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  topics:
+    order-created: ${KAFKA_TOPICS_ORDER_CREATED:order_created}
+    payment-succeeded: ${KAFKA_TOPICS_PAYMENT_SUCCEEDED:payment_succeeded}
 
