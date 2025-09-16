@@ -1,5 +1,5 @@
 # E-Ticaret PostgreSQL Custom Image
-FROM postgres:16-alpine
+FROM postgres:14-alpine
 
 # Set custom environment variables
 ENV POSTGRES_USER=postgres
@@ -7,7 +7,7 @@ ENV POSTGRES_PASSWORD=123456
 ENV POSTGRES_DB=eticaret
 
 # Copy initialization scripts
-COPY init-databases.sql /docker-entrypoint-initdb.d/
+COPY postgres-init.sql /docker-entrypoint-initdb.d/
 
 # Add health check
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 \

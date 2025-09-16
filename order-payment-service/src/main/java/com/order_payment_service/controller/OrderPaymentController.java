@@ -3,7 +3,9 @@ package com.order_payment_service.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.order_payment_service.dto.iyzico.*;
 import com.order_payment_service.entity.Cart;
+import com.order_payment_service.entity.IdempotencyKey;
 import com.order_payment_service.entity.Order;
+import com.order_payment_service.repository.IdempotencyKeyRepository;
 import com.order_payment_service.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,9 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @RestController
@@ -25,6 +30,11 @@ public class OrderPaymentController {
     private final WebhookService webhookService;
     private final CartService cartService;
     private final OrderService orderService;
+    private final IdempotencyKeyRepository idempotencyKeyRepository;
+    private final RestTemplate restTemplate;
+    
+    @Value("${auth.service.url:http://auth:8081}")
+    private String authServiceUrl;
 
     @PostMapping("/api/order/cart/items")
     public ResponseEntity<Map<String, Object>> addToCart(@RequestBody Map<String, Object> body,
@@ -45,6 +55,52 @@ public class OrderPaymentController {
         }
     }
 
+    @GetMapping("/api/cart")
+    public ResponseEntity<Map<String, Object>> getCart(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+        try {
+            UUID uid = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
+            Cart cart = cartService.getOrCreateCart(uid);
+            int itemCount = cart.getItems().stream().mapToInt(i -> i.getQuantity()).sum();
+            List<java.util.Map<String, Object>> items = cart.getItems().stream().map(i -> java.util.Map.<String, Object>of(
+                    "id", i.getId(),
+                    "productId", i.getProductId(),
+                    "name", i.getName(),
+                    "quantity", i.getQuantity(),
+                    "price", i.getPrice(),
+                    "totalPrice", i.getTotalPrice()
+            )).toList();
+            return ResponseEntity.ok(java.util.Map.of(
+                    "items", items,
+                    "itemCount", itemCount,
+                    "totalAmount", cart.getTotalAmount()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to fetch cart", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch cart"));
+        }
+    }
+
+    @GetMapping("/api/orders")
+    public ResponseEntity<List<Map<String, Object>>> listOrders(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+        try {
+            UUID uid = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
+            List<Order> list = orderService.getUserOrders(uid);
+            List<java.util.Map<String, Object>> dto = list.stream().map(o -> java.util.Map.<String, Object>of(
+                    "id", o.getId(),
+                    "totalAmount", o.getTotalAmount(),
+                    "currency", o.getCurrency(),
+                    "status", o.getStatus(),
+                    "createdAt", o.getCreatedAt()
+            )).toList();
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            log.error("Failed to list orders", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Collections.<java.util.Map<String, Object>>emptyList());
+        }
+    }
+
     @PostMapping("/api/order/checkout")
     public ResponseEntity<Map<String, Object>> checkout(@RequestBody Map<String, Object> body,
                                                        @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -52,8 +108,24 @@ public class OrderPaymentController {
         try {
             UUID uid = userId == null ? UUID.randomUUID() : UUID.fromString(userId);
 
-            // TODO: Add idempotency check using IdempotencyKey entity
+            // Idempotency check using IdempotencyKey entity
+            if (idempotencyKeyRepository.existsByKey(idempotencyKey)) {
+                log.warn("Duplicate request detected for idempotency key: {}", idempotencyKey);
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("error", "Duplicate request - idempotency key already used"));
+            }
+
             log.info("Processing checkout for user: {} with idempotency key: {}", uid, idempotencyKey);
+
+            // Create hash of request body for additional verification
+            String requestHash = createRequestHash(body.toString());
+            
+            // Save idempotency key
+            IdempotencyKey idempotencyKeyEntity = IdempotencyKey.builder()
+                    .key(idempotencyKey)
+                    .requestHash(requestHash)
+                    .build();
+            idempotencyKeyRepository.save(idempotencyKeyEntity);
 
             Order order = orderService.createOrder(uid, body);
 
@@ -123,21 +195,7 @@ public class OrderPaymentController {
                     .paymentChannel("WEB")
                     .paymentGroup("PRODUCT")
                     .paymentSource("DEFAULT")
-                    .buyer(ThreeDSInitRequest.Buyer.builder()
-                            .id(uid.toString())
-                            .name("User Name") // TODO: Get from user service
-                            .surname("Surname")
-                            .identityNumber("12345678901")
-                            .email("user@example.com")
-                            .gsmNumber("+905551234567")
-                            .registrationDate("2024-01-01")
-                            .lastLoginDate("2024-01-15")
-                            .registrationAddress("Istanbul")
-                            .city("Istanbul")
-                            .country("Turkey")
-                            .zipCode("34000")
-                            .ip("127.0.0.1")
-                            .build())
+                    .buyer(createBuyerFromUserService(uid))
                     .shippingAddress(ThreeDSInitRequest.ShippingAddress.builder()
                             .address(order.getShippingAddress() != null ? order.getShippingAddress() : "Shipping Address")
                             .zipCode("34000")
@@ -276,6 +334,77 @@ public class OrderPaymentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to process webhook"));
         }
+    }
+
+    private String createRequestHash(String requestBody) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(requestBody.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            log.error("Failed to create request hash", e);
+            return requestBody.hashCode() + "";
+        }
+    }
+
+    private ThreeDSInitRequest.Buyer createBuyerFromUserService(UUID userId) {
+        try {
+            // Call auth service to get user details
+            String url = authServiceUrl + "/me";
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("X-User-Id", userId.toString());
+            
+            org.springframework.http.HttpEntity<?> entity = new org.springframework.http.HttpEntity<>(headers);
+            org.springframework.http.ResponseEntity<Map> response = restTemplate.exchange(
+                url, org.springframework.http.HttpMethod.GET, entity, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<String, Object> userDetails = response.getBody();
+                
+                return ThreeDSInitRequest.Buyer.builder()
+                        .id(userId.toString())
+                        .name((String) userDetails.getOrDefault("firstName", "User"))
+                        .surname((String) userDetails.getOrDefault("lastName", "Name"))
+                        .identityNumber("12345678901") // This would come from a separate profile service
+                        .email((String) userDetails.getOrDefault("email", "user@example.com"))
+                        .gsmNumber((String) userDetails.getOrDefault("phone", "+905551234567"))
+                        .registrationDate("2024-01-01") // This could be derived from createdAt
+                        .lastLoginDate("2024-01-15") // This would come from auth logs
+                        .registrationAddress("Istanbul") // This would come from profile service
+                        .city("Istanbul")
+                        .country("Turkey")
+                        .zipCode("34000")
+                        .ip("127.0.0.1") // This should come from request
+                        .build();
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch user details from auth service for user: {}", userId, e);
+        }
+        
+        // Fallback to default values if user service call fails
+        return ThreeDSInitRequest.Buyer.builder()
+                .id(userId.toString())
+                .name("User")
+                .surname("Name")
+                .identityNumber("12345678901")
+                .email("user@example.com")
+                .gsmNumber("+905551234567")
+                .registrationDate("2024-01-01")
+                .lastLoginDate("2024-01-15")
+                .registrationAddress("Istanbul")
+                .city("Istanbul")
+                .country("Turkey")
+                .zipCode("34000")
+                .ip("127.0.0.1")
+                .build();
     }
 }
 

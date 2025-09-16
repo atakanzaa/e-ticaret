@@ -24,9 +24,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     List<Product> findByStoreIdOrderByCreatedAtDesc(UUID storeId);
     
     @Query("SELECT p FROM Product p WHERE p.isActive = true " +
-           "AND (:category IS NULL OR p.categoryId = :category) " +
-           "AND (:query IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')))")
-    List<Product> findProductsWithFilters(@Param("category") UUID category, @Param("query") String query);
+           "AND (:category IS NULL OR p.categoryId = :category)")
+    List<Product> findProductsWithFilters(@Param("category") UUID category);
     
     @Query("SELECT p FROM Product p WHERE p.isActive = true ORDER BY p.createdAt DESC")
     List<Product> findHomeProducts(Pageable pageable);

@@ -4,6 +4,7 @@ import com.seller_service.dto.CreateProductRequest;
 import com.seller_service.dto.ProductResponse;
 import com.seller_service.dto.UpdateProductRequest;
 import com.seller_service.entity.Product;
+import com.seller_service.event.ProductEvent;
 import com.seller_service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class ProductService {
     
     private final ProductRepository productRepository;
+    private final ProductEventPublisher eventPublisher;
     
     @Transactional
     public ProductResponse createProduct(UUID sellerId, CreateProductRequest request) {
@@ -39,6 +41,23 @@ public class ProductService {
         
         Product savedProduct = productRepository.save(product);
         log.info("Product created with ID: {}", savedProduct.getId());
+        
+        // Publish product created event
+        ProductEvent event = new ProductEvent(
+                ProductEvent.EventType.PRODUCT_CREATED,
+                savedProduct.getId(),
+                savedProduct.getName(),
+                savedProduct.getCategory(),
+                savedProduct.getPrice(),
+                savedProduct.getQuantity(),
+                savedProduct.getImageUrl(),
+                savedProduct.getDescription(),
+                savedProduct.getSellerId(),
+                savedProduct.getIsActive(),
+                savedProduct.getCreatedAt(),
+                savedProduct.getUpdatedAt()
+        );
+        eventPublisher.publishProductCreated(event);
         
         return mapToResponse(savedProduct);
     }
@@ -104,6 +123,23 @@ public class ProductService {
         Product savedProduct = productRepository.save(product);
         log.info("Product updated: {}", savedProduct.getId());
         
+        // Publish product updated event
+        ProductEvent event = new ProductEvent(
+                ProductEvent.EventType.PRODUCT_UPDATED,
+                savedProduct.getId(),
+                savedProduct.getName(),
+                savedProduct.getCategory(),
+                savedProduct.getPrice(),
+                savedProduct.getQuantity(),
+                savedProduct.getImageUrl(),
+                savedProduct.getDescription(),
+                savedProduct.getSellerId(),
+                savedProduct.getIsActive(),
+                savedProduct.getCreatedAt(),
+                savedProduct.getUpdatedAt()
+        );
+        eventPublisher.publishProductUpdated(event);
+        
         return mapToResponse(savedProduct);
     }
     
@@ -111,9 +147,25 @@ public class ProductService {
     public void deleteProduct(UUID sellerId, UUID productId) {
         log.info("Deleting product {} for seller: {}", productId, sellerId);
         
-        if (!productRepository.existsByIdAndSellerId(productId, sellerId)) {
-            throw new RuntimeException("Product not found or not owned by seller");
-        }
+        Product product = productRepository.findByIdAndSellerId(productId, sellerId)
+                .orElseThrow(() -> new RuntimeException("Product not found or not owned by seller"));
+        
+        // Publish product deleted event before deletion
+        ProductEvent event = new ProductEvent(
+                ProductEvent.EventType.PRODUCT_DELETED,
+                product.getId(),
+                product.getName(),
+                product.getCategory(),
+                product.getPrice(),
+                product.getQuantity(),
+                product.getImageUrl(),
+                product.getDescription(),
+                product.getSellerId(),
+                product.getIsActive(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        );
+        eventPublisher.publishProductDeleted(event);
         
         productRepository.deleteById(productId);
         log.info("Product deleted: {}", productId);

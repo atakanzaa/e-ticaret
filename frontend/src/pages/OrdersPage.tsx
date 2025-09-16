@@ -1,45 +1,39 @@
-import React from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useEffect, useState } from 'react';
+import { api } from '../api/client';
 
-const OrdersPage: React.FC = () => {
-  const { state } = useApp();
-  const user = state.user;
-  if (!user) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-16">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-6 rounded-lg">
-          Please sign in to view your orders.
-        </div>
-      </div>
-    );
-  }
+export function OrdersPage() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.myOrders();
+        setOrders(data as any[]);
+      } catch (e) {}
+      finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold mb-6">My Orders</h1>
-      <div className="bg-white rounded-lg shadow divide-y">
-        {state.orders.length === 0 && (
-          <div className="p-6 text-gray-500">You have no orders yet.</div>
-        )}
-        {state.orders.map((o) => (
-          <div key={o.id} className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">Order #{o.id}</div>
-                <div className="text-sm text-gray-500">{o.items.length} items</div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold">${o.total.toFixed(2)}</div>
-                <div className="text-sm text-gray-500">{o.status}</div>
-              </div>
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-4">My Orders</h1>
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow divide-y divide-gray-200 dark:divide-gray-700">
+        {orders.length === 0 && <div className="p-4">No orders</div>}
+        {orders.map((o) => (
+          <div key={o.id} className="p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">Order #{o.id}</div>
+              <div className="text-sm text-gray-600">{o.status} • {o.currency} {o.totalAmount}</div>
             </div>
+            <div className="text-sm text-gray-500">{new Date(o.createdAt).toLocaleString()}</div>
           </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default OrdersPage;
-
-
+}

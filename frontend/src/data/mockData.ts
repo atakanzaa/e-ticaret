@@ -1,106 +1,124 @@
-import { Product } from '../types';
+import { User, Product, Review, DashboardStats } from '../types';
+
+export const mockUsers: User[] = [
+  {
+    id: '1',
+    email: 'user@demo.com',
+    username: 'John Doe',
+    role: 'user',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: '2',
+    email: 'seller@demo.com',
+    username: 'Jane Smith',
+    role: 'seller',
+    isActive: true,
+    createdAt: '2024-01-02T00:00:00Z'
+  },
+  {
+    id: '3',
+    email: 'admin@demo.com',
+    username: 'Admin User',
+    role: 'admin',
+    isActive: true,
+    createdAt: '2024-01-03T00:00:00Z'
+  }
+];
+
+export const mockReviews: Review[] = [
+  {
+    id: '1',
+    userId: '1',
+    username: 'John Doe',
+    rating: 5,
+    comment: 'Excellent product! Highly recommended.',
+    createdAt: '2024-01-10T00:00:00Z'
+  },
+  {
+    id: '2',
+    userId: '1',
+    username: 'John Doe',
+    rating: 4,
+    comment: 'Good quality, fast delivery.',
+    createdAt: '2024-01-15T00:00:00Z'
+  }
+];
 
 export const mockProducts: Product[] = [
   {
     id: '1',
-    name: 'Wireless Bluetooth Headphones',
-    description: 'Premium noise-canceling headphones with 30-hour battery life and superior sound quality.',
+    title: 'Wireless Bluetooth Headphones',
+    description: 'Premium quality wireless headphones with noise cancellation and 30-hour battery life. Perfect for music lovers and professionals.',
     price: 199.99,
-    originalPrice: 249.99,
+    quantity: 50,
     category: 'Electronics',
-    image: 'https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=500',
     images: [
       'https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1649771/pexels-photo-1649771.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1649771/pexels-photo-1649771.jpeg?auto=compress&cs=tinysrgb&w=800'
     ],
-    stock: 50,
+    sellerId: '2',
+    sellerName: 'Jane Smith',
     rating: 4.8,
-    reviewCount: 128,
-    featured: true,
-    tags: ['wireless', 'bluetooth', 'noise-canceling'],
+    reviews: mockReviews,
+    createdAt: '2024-01-05T00:00:00Z'
   },
   {
     id: '2',
-    name: 'Smart Fitness Watch',
-    description: 'Track your fitness goals with this advanced smartwatch featuring heart rate monitoring and GPS.',
+    title: 'Smart Watch Series X',
+    description: 'Advanced smartwatch with health monitoring, GPS tracking, and smartphone connectivity. Water-resistant with 7-day battery life.',
     price: 299.99,
+    quantity: 30,
     category: 'Electronics',
-    image: 'https://images.pexels.com/photos/437037/pexels-photo-437037.jpeg?auto=compress&cs=tinysrgb&w=500',
     images: [
       'https://images.pexels.com/photos/437037/pexels-photo-437037.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1697911/pexels-photo-1697911.jpeg?auto=compress&cs=tinysrgb&w=800'
     ],
-    stock: 35,
+    sellerId: '2',
+    sellerName: 'Jane Smith',
     rating: 4.6,
-    reviewCount: 89,
-    featured: true,
-    tags: ['fitness', 'smartwatch', 'health'],
+    reviews: [],
+    createdAt: '2024-01-08T00:00:00Z'
   },
   {
     id: '3',
-    name: 'Organic Cotton T-Shirt',
-    description: 'Comfortable and sustainable organic cotton t-shirt in various colors and sizes.',
-    price: 29.99,
-    category: 'Clothing',
-    image: 'https://images.pexels.com/photos/1656684/pexels-photo-1656684.jpeg?auto=compress&cs=tinysrgb&w=500',
+    title: 'Organic Coffee Beans',
+    description: 'Premium organic coffee beans sourced from sustainable farms. Rich flavor profile with notes of chocolate and caramel.',
+    price: 24.99,
+    quantity: 100,
+    category: 'Food & Beverage',
     images: [
-      'https://images.pexels.com/photos/1656684/pexels-photo-1656684.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/324028/pexels-photo-324028.jpeg?auto=compress&cs=tinysrgb&w=800'
     ],
-    stock: 100,
-    rating: 4.3,
-    reviewCount: 45,
-    featured: false,
-    tags: ['organic', 'cotton', 'sustainable'],
+    sellerId: '2',
+    sellerName: 'Jane Smith',
+    rating: 4.9,
+    reviews: [],
+    createdAt: '2024-01-12T00:00:00Z'
   },
   {
     id: '4',
-    name: 'Modern Office Chair',
-    description: 'Ergonomic office chair with lumbar support and adjustable height for maximum comfort.',
-    price: 349.99,
-    originalPrice: 399.99,
-    category: 'Furniture',
-    image: 'https://images.pexels.com/photos/586415/pexels-photo-586415.jpeg?auto=compress&cs=tinysrgb&w=500',
+    title: 'Vintage Leather Backpack',
+    description: 'Handcrafted vintage leather backpack with multiple compartments. Perfect for travel, work, or everyday use.',
+    price: 149.99,
+    quantity: 25,
+    category: 'Fashion',
     images: [
-      'https://images.pexels.com/photos/586415/pexels-photo-586415.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1545558/pexels-photo-1545558.jpeg?auto=compress&cs=tinysrgb&w=800'
     ],
-    stock: 20,
+    sellerId: '2',
+    sellerName: 'Jane Smith',
     rating: 4.7,
-    reviewCount: 67,
-    featured: true,
-    tags: ['ergonomic', 'office', 'comfort'],
-  },
-  {
-    id: '5',
-    name: 'Stainless Steel Water Bottle',
-    description: 'Insulated water bottle that keeps drinks cold for 24 hours or hot for 12 hours.',
-    price: 24.99,
-    category: 'Sports',
-    image: 'https://images.pexels.com/photos/2733918/pexels-photo-2733918.jpeg?auto=compress&cs=tinysrgb&w=500',
-    images: [
-      'https://images.pexels.com/photos/2733918/pexels-photo-2733918.jpeg?auto=compress&cs=tinysrgb&w=800',
-    ],
-    stock: 75,
-    rating: 4.4,
-    reviewCount: 123,
-    featured: false,
-    tags: ['insulated', 'stainless-steel', 'eco-friendly'],
-  },
-  {
-    id: '6',
-    name: 'Professional Camera Lens',
-    description: '85mm f/1.8 portrait lens for professional photography with stunning bokeh.',
-    price: 599.99,
-    category: 'Electronics',
-    image: 'https://images.pexels.com/photos/90946/pexels-photo-90946.jpeg?auto=compress&cs=tinysrgb&w=500',
-    images: [
-      'https://images.pexels.com/photos/90946/pexels-photo-90946.jpeg?auto=compress&cs=tinysrgb&w=800',
-    ],
-    stock: 15,
-    rating: 4.9,
-    reviewCount: 34,
-    featured: true,
-    tags: ['photography', 'lens', 'professional'],
-  },
+    reviews: [],
+    createdAt: '2024-01-18T00:00:00Z'
+  }
 ];
 
-export const categories = ['All', 'Electronics', 'Clothing', 'Furniture', 'Sports'];
+export const mockDashboardStats: DashboardStats = {
+  dailySales: 15420.50,
+  totalUsers: 1250,
+  totalSellers: 89,
+  totalProducts: 450,
+  profitLoss: 8930.25
+};

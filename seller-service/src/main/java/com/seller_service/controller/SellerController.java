@@ -3,6 +3,7 @@ package com.seller_service.controller;
 import com.seller_service.dto.CreateProductRequest;
 import com.seller_service.dto.ProductResponse;
 import com.seller_service.dto.UpdateProductRequest;
+import com.seller_service.service.CatalogServiceClient;
 import com.seller_service.service.ProductService;
 import com.seller_service.service.StoreService;
 import jakarta.validation.Valid;

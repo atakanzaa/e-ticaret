@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
@@ -36,7 +37,8 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/auth/oauth2/**").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/auth/me").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .pathMatchers(HttpMethod.GET, "/api/user/me").authenticated()
                         
                         // Public catalog endpoints
                         .pathMatchers(HttpMethod.GET, "/api/catalog/home").permitAll()
@@ -52,7 +54,8 @@ public class SecurityConfig {
                         
                         // Cart operations (allow anonymous)
                         .pathMatchers(HttpMethod.POST, "/api/order/cart/items").permitAll()
-                        .pathMatchers(HttpMethod.POST, "/api/order/checkout").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/cart").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/api/cart").permitAll()
                         
                         // Admin endpoints
                         .pathMatchers(HttpMethod.GET, "/api/auth/users").hasRole("ADMIN")
@@ -68,6 +71,10 @@ public class SecurityConfig {
                         .pathMatchers("/api/catalog/my/**").hasRole("SELLER")
                         .pathMatchers(HttpMethod.POST, "/api/catalog/products").hasRole("SELLER")
                         .pathMatchers("/api/seller/me/**").hasRole("SELLER")
+                        .pathMatchers(HttpMethod.GET, "/api/seller/stats").hasRole("SELLER")
+                        .pathMatchers(HttpMethod.GET, "/api/seller/products").hasRole("SELLER")
+                        .pathMatchers(HttpMethod.PUT, "/api/seller/products/**").hasRole("SELLER")
+                        .pathMatchers(HttpMethod.DELETE, "/api/seller/products/**").hasRole("SELLER")
                         
                         // Any other request requires authentication
                         .anyExchange().authenticated()
@@ -75,7 +82,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .jwtDecoder(jwtDecoder)
-                                .jwtAuthenticationConverter(new JwtAuthenticationConverter())
+                                .jwtAuthenticationConverter(new ReactiveJwtAuthenticationConverter())
                         )
                 )
                 .build();

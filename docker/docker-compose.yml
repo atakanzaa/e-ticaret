@@ -2,11 +2,10 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: eticaret
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
+    build:
+      context: ../infrastructure/postgres
+      dockerfile: Dockerfile
+    image: postgres-service:latest
     ports:
       - "5432:5432"
     volumes:
@@ -14,40 +13,79 @@ services:
       - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+    build:
+      context: ../infrastructure/zookeeper
+      dockerfile: Dockerfile
+    image: zookeeper-service:latest
     ports:
       - "2181:2181"
 
   kafka:
-    image: confluentinc/cp-kafka:7.4.0
+    build:
+      context: ../infrastructure/kafka
+      dockerfile: Dockerfile
+    image: kafka-service:latest
     depends_on:
       - zookeeper
     ports:
       - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   rabbitmq:
-    image: rabbitmq:3-management
+    build:
+      context: ../infrastructure/rabbitmq
+      dockerfile: Dockerfile
+    image: rabbitmq-service:latest
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+
+  # MinIO Object Storage
+  minio:
+    build:
+      context: ../infrastructure/minio
+      dockerfile: Dockerfile
+    image: minio-service:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MailHog Email Testing
+  mailhog:
+    build:
+      context: ../infrastructure/mailhog
+      dockerfile: Dockerfile
+    image: mailhog-service:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MH_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MH_API_BIND_ADDR: 0.0.0.0:8025
+      MH_UI_BIND_ADDR: 0.0.0.0:8025
+      MH_STORAGE: memory
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Auth Service
   auth:
     build: ../auth-service
+    image: auth-service:latest
     ports:
       - "8081:8081"
     environment:
@@ -56,7 +94,10 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 123456
       SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin123
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - postgres
       - rabbitmq
@@ -65,6 +106,7 @@ services:
   # Order Payment Service
   order-payment:
     build: ../order-payment-service
+    image: order-payment-service:latest
     ports:
       - "8086:8086"
     environment:
@@ -72,11 +114,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=order_payment
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 123456
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: admin
-      SPRING_RABBITMQ_PASSWORD: admin
+      SPRING_RABBITMQ_PASSWORD: admin123
       # iyzico sandbox credentials
       IYZICO_API_BASE: https://sandbox-api.iyzipay.com
       IYZICO_API_KEY: sandbox-Krg04h0IF0kWcTi9RlzB87ILNPfCc5iW
@@ -95,6 +137,7 @@ services:
   # Catalog Service
   catalog:
     build: ../catalog-service
+    image: catalog-service:latest
     ports:
       - "8082:8082"
     environment:
@@ -102,7 +145,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=catalog
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 123456
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_RABBITMQ_HOST: rabbitmq
     depends_on:
       - postgres
@@ -112,6 +155,7 @@ services:
   # Seller Service
   seller:
     build: ../seller-service
+    image: seller-service:latest
     ports:
       - "8083:8083"
     environment:
@@ -119,11 +163,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/eticaret?currentSchema=seller
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 123456
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: admin
-      SPRING_RABBITMQ_PASSWORD: admin
+      SPRING_RABBITMQ_PASSWORD: admin123
       CATALOG_SERVICE_URL: http://catalog:8082
     depends_on:
       - postgres
@@ -134,6 +178,7 @@ services:
   # Gateway Service
   gateway:
     build: ../gateway-service
+    image: gateway-service:latest
     ports:
       - "8080:8080"
     environment:
@@ -151,3 +196,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

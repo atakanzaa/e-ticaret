@@ -27,7 +27,7 @@ public class Product {
     @Column(name = "store_id", nullable = false)
     private UUID storeId;
     
-    @Column(nullable = false, length = 200)
+    @Column(name = "name", nullable = false, length = 200, columnDefinition = "VARCHAR(200)")
     private String name;
     
     @Column(nullable = false, length = 200, unique = true)

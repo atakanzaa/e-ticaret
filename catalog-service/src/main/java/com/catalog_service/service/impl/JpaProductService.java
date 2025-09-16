@@ -40,7 +40,27 @@ public class JpaProductService implements ProductService {
             }
         }
         
-        List<Product> products = productRepository.findProductsWithFilters(categoryId, q);
+        List<Product> products;
+        try {
+            log.debug("Calling findProductsWithFilters with categoryId: {}", categoryId);
+            
+            // Önce veritabanından ürünleri al
+            products = productRepository.findProductsWithFilters(categoryId);
+            log.debug("Found {} products from database", products.size());
+            
+            // Arama filtresini Java tarafında uygula
+            if (q != null && !q.isBlank()) {
+                String searchQuery = q.trim().toLowerCase();
+                products = products.stream()
+                    .filter(product -> product.getName() != null && 
+                                     product.getName().toLowerCase().contains(searchQuery))
+                    .collect(java.util.stream.Collectors.toList());
+                log.debug("After search filter: {} products", products.size());
+            }
+        } catch (Exception e) {
+            log.error("Error in findProductsWithFilters", e);
+            throw e;
+        }
         
         // Apply sorting (simplified)
         if ("price,asc".equals(sort)) {
@@ -200,7 +220,7 @@ public class JpaProductService implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public java.util.List<com.catalog_service.service.model.Product> getAllActive() {
-        java.util.List<Product> products = productRepository.findByIsActiveTrue();
+        java.util.List<Product> products = productRepository.findByIsActiveTrueOrderByCreatedAtDesc();
         return products.stream()
                 .map(this::convertToModel)
                 .collect(java.util.stream.Collectors.toList());

@@ -21,6 +21,19 @@ spring:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: ${SPRING_FLYWAY_LOCATIONS:classpath:db/migration}
     baseline-on-migrate: true
+    validate-on-migrate: false
+    out-of-order: true
+    ignore-migration-patterns: true
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:seller-service}
+      auto-offset-reset: ${SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET:earliest}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:admin}
+    password: ${SPRING_RABBITMQ_PASSWORD:admin123}
 
 server:
   port: ${SERVER_PORT:8083}
@@ -39,8 +52,17 @@ catalog:
   service:
     url: ${CATALOG_SERVICE_URL:http://catalog:8082}
 
+# JWT Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://auth:8081/.well-known/jwks.json}
+
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
     com.seller_service: ${LOGGING_LEVEL_COM_SELLER_SERVICE:INFO}
+
+# Spring Security is now enabled for JWT authentication
 

@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS order_payment;
 
 -- Payments table
-CREATE TABLE order_payment.payments (
+CREATE TABLE IF NOT EXISTS order_payment.payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING_3DS', 'AUTHORIZED', 'SUCCEEDED', 'FAILED', 'CANCELLED')),
@@ -24,7 +24,7 @@ CREATE TABLE order_payment.payments (
 );
 
 -- Payment items table
-CREATE TABLE order_payment.payment_items (
+CREATE TABLE IF NOT EXISTS order_payment.payment_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_id UUID NOT NULL REFERENCES order_payment.payments(id) ON DELETE CASCADE,
     item_id VARCHAR(255) NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE order_payment.payment_items (
 );
 
 -- Webhook events table
-CREATE TABLE order_payment.webhook_events (
+CREATE TABLE IF NOT EXISTS order_payment.webhook_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     provider VARCHAR(50) NOT NULL,
     event_type VARCHAR(50) NOT NULL,
@@ -52,14 +52,14 @@ CREATE TABLE order_payment.webhook_events (
 );
 
 -- Idempotency keys table
-CREATE TABLE order_payment.idempotency_keys (
+CREATE TABLE IF NOT EXISTS order_payment.idempotency_keys (
     key VARCHAR(255) PRIMARY KEY,
     request_hash VARCHAR(500) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Orders table
-CREATE TABLE order_payment.orders (
+CREATE TABLE IF NOT EXISTS order_payment.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     total_amount NUMERIC(12,2) NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE order_payment.orders (
 );
 
 -- Order items table
-CREATE TABLE order_payment.order_items (
+CREATE TABLE IF NOT EXISTS order_payment.order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES order_payment.orders(id) ON DELETE CASCADE,
     product_id UUID NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE order_payment.order_items (
 );
 
 -- Carts table
-CREATE TABLE order_payment.carts (
+CREATE TABLE IF NOT EXISTS order_payment.carts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -94,7 +94,7 @@ CREATE TABLE order_payment.carts (
 );
 
 -- Cart items table
-CREATE TABLE order_payment.cart_items (
+CREATE TABLE IF NOT EXISTS order_payment.cart_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cart_id UUID NOT NULL REFERENCES order_payment.carts(id) ON DELETE CASCADE,
     product_id UUID NOT NULL,
@@ -106,16 +106,16 @@ CREATE TABLE order_payment.cart_items (
 );
 
 -- Indexes
-CREATE UNIQUE INDEX idx_carts_user_id ON order_payment.carts(user_id);
-CREATE INDEX idx_orders_user_id ON order_payment.orders(user_id);
-CREATE INDEX idx_orders_created_at ON order_payment.orders(created_at);
-CREATE INDEX idx_order_items_order_id ON order_payment.order_items(order_id);
-CREATE INDEX idx_cart_items_cart_id ON order_payment.cart_items(cart_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_carts_user_id ON order_payment.carts(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON order_payment.orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON order_payment.orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_payment.order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON order_payment.cart_items(cart_id);
 
-CREATE INDEX idx_payments_order_id ON order_payment.payments(order_id);
-CREATE INDEX idx_payments_conversation_id ON order_payment.payments(conversation_id);
-CREATE INDEX idx_payments_iyz_payment_id ON order_payment.payments(iyz_payment_id);
-CREATE INDEX idx_payment_items_payment_id ON order_payment.payment_items(payment_id);
-CREATE INDEX idx_webhook_events_payment_id ON order_payment.webhook_events(payment_id);
-CREATE INDEX idx_webhook_events_conversation_id ON order_payment.webhook_events(conversation_id);
-CREATE INDEX idx_webhook_events_processed_at ON order_payment.webhook_events(processed_at) WHERE processed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON order_payment.payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_conversation_id ON order_payment.payments(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_payments_iyz_payment_id ON order_payment.payments(iyz_payment_id);
+CREATE INDEX IF NOT EXISTS idx_payment_items_payment_id ON order_payment.payment_items(payment_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_payment_id ON order_payment.webhook_events(payment_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_conversation_id ON order_payment.webhook_events(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_processed_at ON order_payment.webhook_events(processed_at) WHERE processed_at IS NULL;

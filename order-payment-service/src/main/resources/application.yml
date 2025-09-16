@@ -21,6 +21,9 @@ spring:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: ${SPRING_FLYWAY_LOCATIONS:classpath:db/migration}
     baseline-on-migrate: true
+    validate-on-migrate: false
+    out-of-order: true
+    ignore-migration-patterns: true
 
 server:
   port: ${SERVER_PORT:8086}
@@ -38,7 +41,7 @@ rabbitmq:
   host: ${SPRING_RABBITMQ_HOST:localhost}
   port: ${SPRING_RABBITMQ_PORT:5672}
   username: ${SPRING_RABBITMQ_USERNAME:admin}
-  password: ${SPRING_RABBITMQ_PASSWORD:admin}
+  password: ${SPRING_RABBITMQ_PASSWORD:admin123}
 
 logging:
   level:

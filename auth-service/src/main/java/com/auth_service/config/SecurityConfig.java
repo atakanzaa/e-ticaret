@@ -27,9 +27,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/register", "/login").permitAll()
+                        .requestMatchers("/register", "/login", "/api/auth/register", "/api/auth/login").permitAll()
                         // Allow Google endpoint and dev profile endpoint for profile fetch
-                        .requestMatchers("/google", "/me").permitAll()
+                        .requestMatchers("/google", "/me", "/api/auth/me").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
                         .requestMatchers("/.well-known/jwks.json").permitAll()
                         .anyRequest().authenticated()
@@ -44,7 +44,7 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000", "http://localhost:8080")
+                        .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:8080")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

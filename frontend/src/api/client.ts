@@ -1,7 +1,8 @@
 /* Lightweight API client with auth and helpers */
 import { Product, User } from '../types';
+import { API_CONFIG } from '../config/api';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ?? 'http://localhost:8080';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 function parseJwt(token: string): any | null {
   try {
@@ -21,7 +22,9 @@ function parseJwt(token: string): any | null {
 
 function getAuthToken(): string | null {
   try {
-    return localStorage.getItem('auth_token');
+    const raw = localStorage.getItem('auth_token');
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
+    return raw;
   } catch {
     return null;
   }
@@ -30,13 +33,30 @@ function getAuthToken(): string | null {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
     ...(init.headers as Record<string, string> | undefined),
   };
 
+  // Get token fresh every time to avoid timing issues
   const token = getAuthToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    console.log(`API Request to ${path} with token:`, token.substring(0, 50) + '...');
+  } else {
+    console.log(`API Request to ${path} without token`);
+  }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+  console.log('Request headers:', headers);
+  console.log('Request URL:', `${API_BASE_URL}${path}`);
+
+  const res = await fetch(`${API_BASE_URL}${path}`, { 
+    ...init, 
+    headers,
+    cache: 'no-store',
+    mode: 'cors',
+    credentials: 'include'
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status}: ${text}`);
@@ -67,6 +87,9 @@ function toProduct(ui: any, featured = false): Product {
     reviewCount: Number(reviewCount ?? 0),
     featured: Boolean(ui.featured ?? featured),
     tags: ui.tags || [],
+    sku: ui.sku,
+    status: ui.status,
+    sales: ui.sales,
   };
 
   return product;
@@ -81,6 +104,26 @@ export type ListProductsParams = {
 
 export const api = {
   // Auth
+  async login(email: string, password: string): Promise<{ token: string }> {
+    const data = await request<{ jwt: string }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    return { token: data.jwt };
+  },
+
+  async register(userData: {
+    email: string;
+    password: string;
+    name: string;
+  }): Promise<{ token: string }> {
+    const data = await request<{ jwt: string }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    return { token: data.jwt };
+  },
+
   async me(): Promise<User> {
     const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
@@ -98,7 +141,30 @@ export const api = {
       const roles = me.roles || [];
       role = roles.includes('ADMIN') ? 'admin' : (roles.includes('SELLER') ? 'seller' : 'customer');
     }
-    return { id: me.id, email: me.email, name: me.name, role: role! };
+    return { id: me.id, email: me.email, name: me.name, role: role as User['role'] };
+  },
+
+  // User
+  async userMe(): Promise<User> {
+    return request('/api/user/me');
+  },
+
+  // Orders
+  async myOrders(): Promise<any[]> {
+    return request('/api/orders');
+  },
+
+  // Cart
+  async addCartItem(payload: { productId: string; name: string; price: number; quantity: number }): Promise<{ itemCount: number }> {
+    const res = await request<{ itemCount: number }>('/api/order/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res;
+  },
+
+  async getCart(): Promise<{ items: Array<{ id: string; productId: string; name: string; quantity: number; price: number }>; itemCount: number; totalAmount: number }> {
+    return request('/api/cart');
   },
 
   // Catalog - public
@@ -112,105 +178,120 @@ export const api = {
     return (data || []).map((p) => toProduct(p));
   },
 
-  // Seller product management endpoints
-  async createSellerProduct(payload: {
-    name: string;
-    category: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-    description?: string;
-  }): Promise<{
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-    sellerId: string;
-    description?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-  }> {
-    return request('/api/seller/products', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-  },
-
-  async getSellerProducts(): Promise<Array<{
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-    sellerId: string;
-    description?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-  }>> {
-    return request('/api/seller/products');
-  },
-
-  async updateSellerProduct(id: string, payload: {
-    name?: string;
-    category?: string;
-    price?: number;
-    quantity?: number;
-    imageUrl?: string;
-    description?: string;
-    isActive?: boolean;
-  }): Promise<{
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-    sellerId: string;
-    description?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-  }> {
-    return request(`/api/seller/products/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    });
-  },
-
-  async deleteSellerProduct(id: string): Promise<void> {
-    await request(`/api/seller/products/${id}`, { method: 'DELETE' });
-  },
-
-  async getSellerStats(): Promise<{ activeProducts: number; sellerId: string }> {
-    return request('/api/seller/stats');
-  },
-
-  // Legacy endpoint for backward compatibility
-  async createProductRaw(payload: { name: string; category: string; price: number; quantity: number; sellerId: string }): Promise<{ id: string }> {
-    return this.createSellerProduct(payload);
-  },
-
-  // Admin analytics
-  async listActiveSellers(): Promise<Array<{ id: string; name: string; storeName?: string; status?: string }>> {
-    return request('/api/sellers/active');
-  },
-  async ordersDaily(from: string, to: string): Promise<Array<{ date: string; count: number }>> {
-    const qs = new URLSearchParams({ from, to });
-    return request(`/api/orders/daily?${qs.toString()}`);
-  },
-  async profitDaily(from: string, to: string): Promise<Array<{ date: string; profit: number }>> {
-    const qs = new URLSearchParams({ from, to });
-    return request(`/api/orders/profit/daily?${qs.toString()}`);
-  },
-
   async homeProducts(limit = 8): Promise<Product[]> {
     const data = await request<any[]>(`/api/catalog/home?limit=${limit}`);
     return (data || []).map((p) => toProduct(p, true));
+  },
+
+  // Product Detail
+  async getProductBySlug(slug: string): Promise<Product> {
+    const data = await request<any>(`/api/catalog/products/${slug}`);
+    return toProduct(data);
+  },
+
+  // Store Detail
+  async getStoreBySlug(slug: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    bio: string;
+    isApproved: boolean;
+    rating: number;
+    reviewCount: number;
+    productCount: number;
+    location?: string;
+    joinedAt: string;
+  }> {
+    return request(`/api/catalog/stores/${slug}`);
+  },
+
+  async getStoreProducts(storeId: string, params: { sort?: string } = {}): Promise<Product[]> {
+    const qs = new URLSearchParams();
+    if (params.sort) qs.set('sort', params.sort);
+    const data = await request<any[]>(`/api/catalog/stores/${storeId}/products${qs.toString() ? `?${qs.toString()}` : ''}`);
+    return (data || []).map((p) => toProduct(p));
+  },
+
+  // Cart & Orders
+  async addToCart(productId: string, quantity: number): Promise<void> {
+    await request('/api/order/cart/items', {
+      method: 'POST',
+      body: JSON.stringify({ productId, quantity }),
+    });
+  },
+
+  async checkout(orderData: {
+    items: Array<{ productId: string; quantity: number; price: number }>;
+    totalAmount: number;
+    currency: string;
+    shippingAddress: any;
+    billingAddress: any;
+  }): Promise<{ orderId: string }> {
+    return request('/api/order/checkout', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  },
+
+  async getMyOrders(): Promise<Array<{
+    id: string;
+    userId: string;
+    totalAmount: number;
+    currency: string;
+    status: string;
+    createdAt: string;
+    items: Array<{ productId: string; quantity: number; price: number }>;
+  }>> {
+    return request('/api/order/my');
+  },
+
+  async getOrderById(id: string): Promise<{
+    id: string;
+    userId: string;
+    totalAmount: number;
+    currency: string;
+    status: string;
+    createdAt: string;
+    shippingAddress: any;
+    billingAddress: any;
+    items: Array<{ productId: string; quantity: number; price: number }>;
+  }> {
+    return request(`/api/order/${id}`);
+  },
+
+  // Search
+  async search(query: string, type: 'product' | 'store' = 'product'): Promise<any[]> {
+    const qs = new URLSearchParams({ q: query, type });
+    return request(`/api/search?${qs.toString()}`);
+  },
+
+  // Reviews
+  async addReview(productId: string, reviewData: {
+    rating: number;
+    comment: string;
+  }): Promise<{
+    id: string;
+    userId: string;
+    userName: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }> {
+    return request('/api/review/', {
+      method: 'POST',
+      body: JSON.stringify({ productId, ...reviewData }),
+    });
+  },
+
+  async getProductReviews(productId: string): Promise<Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }>> {
+    return request(`/api/review/product/${productId}`);
   },
 
   // Seller
@@ -251,6 +332,22 @@ export const api = {
     await request(`/api/catalog/products/${id}`, { method: 'DELETE' });
   },
 
+  // Seller Application
+  async applyForSeller(applicationData: FormData): Promise<void> {
+    await request('/api/seller/apply', {
+      method: 'POST',
+      body: applicationData,
+      headers: {}, // Remove Content-Type to let browser set it for FormData
+    });
+  },
+
+  // Payment
+  async initPayment(orderId: string): Promise<{ paymentUrl: string }> {
+    return request(`/api/payment/${orderId}/init`, {
+      method: 'POST',
+    });
+  },
+
   // Admin
   async setProductActive(id: string, isActive: boolean): Promise<any> {
     return request(`/api/catalog/products/${id}/active`, {
@@ -273,5 +370,3 @@ export const api = {
 };
 
 export type { Product };
-
-

@@ -1,270 +1,400 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  MenuItem,
-  Box,
-  Alert,
-  CircularProgress,
-  InputAdornment
-} from '@mui/material';
-import { api } from '../api/client';
+import { Upload, X, Plus, Minus } from 'lucide-react';
 
-const categories = [
-  'Electronics',
-  'Fashion',
-  'Home & Garden',
-  'Sports & Outdoors',
-  'Books',
-  'Health & Beauty',
-  'Automotive',
-  'Toys & Games',
-  'Food & Beverages',
-  'Other'
-];
-
-type ProductFormData = {
+interface ProductFormData {
   name: string;
-  category: string;
-  price: number;
-  quantity: number;
-  imageUrl: string;
   description: string;
-};
-
-type ProductFormProps = {
-  open: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  editProduct?: {
-    id: string;
+  price: string;
+  category: string;
+  stock: string;
+  sku: string;
+  images: string[];
+  variants: Array<{
     name: string;
-    category: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-    description?: string;
-  } | null;
-};
+    options: string[];
+  }>;
+  specifications: Array<{
+    key: string;
+    value: string;
+  }>;
+}
 
-const ProductForm: React.FC<ProductFormProps> = ({ open, onClose, onSuccess, editProduct }) => {
+interface ProductFormProps {
+  onSubmit: (data: ProductFormData) => void;
+  onCancel: () => void;
+  initialData?: Partial<ProductFormData>;
+}
+
+const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, onCancel, initialData }) => {
   const [formData, setFormData] = useState<ProductFormData>({
-    name: editProduct?.name || '',
-    category: editProduct?.category || categories[0],
-    price: editProduct?.price || 0,
-    quantity: editProduct?.quantity || 0,
-    imageUrl: editProduct?.imageUrl || '',
-    description: editProduct?.description || '',
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    price: initialData?.price || '',
+    category: initialData?.category || '',
+    stock: initialData?.stock || '',
+    sku: initialData?.sku || '',
+    images: initialData?.images || [],
+    variants: initialData?.variants || [],
+    specifications: initialData?.specifications || [],
   });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const categories = [
+    'Electronics',
+    'Clothing',
+    'Home & Garden',
+    'Sports & Outdoors',
+    'Books',
+    'Health & Beauty',
+    'Toys & Games',
+    'Automotive',
+  ];
 
-  React.useEffect(() => {
-    if (editProduct) {
-      setFormData({
-        name: editProduct.name,
-        category: editProduct.category,
-        price: editProduct.price,
-        quantity: editProduct.quantity,
-        imageUrl: editProduct.imageUrl || '',
-        description: editProduct.description || '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        category: categories[0],
-        price: 0,
-        quantity: 0,
-        imageUrl: '',
-        description: '',
-      });
-    }
-    setError(null);
-  }, [editProduct, open]);
+  const handleInputChange = (field: keyof ProductFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-  const handleInputChange = (field: keyof ProductFormData) => (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = event.target.value;
+  const addVariant = () => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'price' || field === 'quantity' ? Number(value) : value,
+      variants: [...prev.variants, { name: '', options: [''] }]
     }));
   };
 
-  const validateForm = (): string | null => {
-    if (!formData.name.trim()) return 'Product name is required';
-    if (!formData.category) return 'Category is required';
-    if (formData.price <= 0) return 'Price must be greater than 0';
-    if (formData.quantity < 0) return 'Quantity cannot be negative';
-    if (formData.name.length < 2) return 'Product name must be at least 2 characters';
-    if (formData.name.length > 255) return 'Product name cannot exceed 255 characters';
-    if (formData.imageUrl && formData.imageUrl.length > 500) return 'Image URL cannot exceed 500 characters';
-    if (formData.description.length > 2000) return 'Description cannot exceed 2000 characters';
-    return null;
+  const removeVariant = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const payload = {
-        name: formData.name.trim(),
-        category: formData.category,
-        price: formData.price,
-        quantity: formData.quantity,
-        imageUrl: formData.imageUrl.trim() || undefined,
-        description: formData.description.trim() || undefined,
-      };
-
-      if (editProduct) {
-        await api.updateSellerProduct(editProduct.id, payload);
-      } else {
-        await api.createSellerProduct(payload);
-      }
-
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      console.error('Error saving product:', err);
-      setError(err.message || 'Failed to save product. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const updateVariant = (index: number, field: 'name' | 'options', value: string | string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    }));
   };
 
-  const handleClose = () => {
-    if (!loading) {
-      onClose();
-    }
+  const addVariantOption = (variantIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === variantIndex 
+          ? { ...variant, options: [...variant.options, ''] }
+          : variant
+      )
+    }));
+  };
+
+  const removeVariantOption = (variantIndex: number, optionIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === variantIndex 
+          ? { ...variant, options: variant.options.filter((_, j) => j !== optionIndex) }
+          : variant
+      )
+    }));
+  };
+
+  const updateVariantOption = (variantIndex: number, optionIndex: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map((variant, i) => 
+        i === variantIndex 
+          ? { 
+              ...variant, 
+              options: variant.options.map((option, j) => j === optionIndex ? value : option)
+            }
+          : variant
+      )
+    }));
+  };
+
+  const addSpecification = () => {
+    setFormData(prev => ({
+      ...prev,
+      specifications: [...prev.specifications, { key: '', value: '' }]
+    }));
+  };
+
+  const removeSpecification = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      specifications: prev.specifications.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSpecification = (index: number, field: 'key' | 'value', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      specifications: prev.specifications.map((spec, i) => 
+        i === index ? { ...spec, [field]: value } : spec
+      )
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          {editProduct ? 'Edit Product' : 'Create New Product'}
-        </DialogTitle>
-        
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
+    <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
+        <h2 className="text-xl font-semibold text-blue-900">
+          {initialData ? 'Edit Product' : 'Create New Product'}
+        </h2>
+      </div>
 
-            <TextField
-              label="Product Name"
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Basic Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Name *
+            </label>
+            <input
+              type="text"
+              required
               value={formData.name}
-              onChange={handleInputChange('name')}
-              required
-              fullWidth
-              disabled={loading}
-              error={!formData.name.trim() && formData.name !== ''}
-              helperText={!formData.name.trim() && formData.name !== '' ? 'Product name is required' : ''}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="Enter product name"
             />
+          </div>
 
-            <TextField
-              label="Category"
-              select
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              SKU *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.sku}
+              onChange={(e) => handleInputChange('sku', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="Enter SKU"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Price *
+            </label>
+            <input
+              type="number"
+              required
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => handleInputChange('price', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stock Quantity *
+            </label>
+            <input
+              type="number"
+              required
+              value={formData.stock}
+              onChange={(e) => handleInputChange('stock', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="0"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
+            </label>
+            <select
+              required
               value={formData.category}
-              onChange={handleInputChange('category')}
-              required
-              fullWidth
-              disabled={loading}
+              onChange={(e) => handleInputChange('category', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
+              <option value="">Select a category</option>
               {categories.map((category) => (
-                <MenuItem key={category} value={category}>
+                <option key={category} value={category}>
                   {category}
-                </MenuItem>
+                </option>
               ))}
-            </TextField>
+            </select>
+          </div>
+        </div>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Price"
-                type="number"
-                value={formData.price}
-                onChange={handleInputChange('price')}
-                required
-                fullWidth
-                disabled={loading}
-                inputProps={{ min: 0.01, step: 0.01 }}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                }}
-                error={formData.price <= 0}
-                helperText={formData.price <= 0 ? 'Price must be greater than 0' : ''}
-              />
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description *
+          </label>
+          <textarea
+            required
+            rows={4}
+            value={formData.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            placeholder="Enter product description"
+          />
+        </div>
 
-              <TextField
-                label="Quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={handleInputChange('quantity')}
-                required
-                fullWidth
-                disabled={loading}
-                inputProps={{ min: 0 }}
-                error={formData.quantity < 0}
-                helperText={formData.quantity < 0 ? 'Quantity cannot be negative' : ''}
-              />
-            </Box>
-
-            <TextField
-              label="Image URL"
-              value={formData.imageUrl}
-              onChange={handleInputChange('imageUrl')}
-              fullWidth
-              disabled={loading}
-              placeholder="https://example.com/image.jpg"
-              helperText="Optional: URL to product image"
+        {/* Product Images */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Product Images
+          </label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <Upload className="mx-auto text-gray-400 mb-2" size={32} />
+            <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
+            <p className="text-sm text-gray-500">PNG, JPG, GIF up to 10MB</p>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              id="image-upload"
             />
+            <label
+              htmlFor="image-upload"
+              className="mt-2 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+            >
+              Choose Files
+            </label>
+          </div>
+        </div>
 
-            <TextField
-              label="Description"
-              value={formData.description}
-              onChange={handleInputChange('description')}
-              fullWidth
-              multiline
-              rows={4}
-              disabled={loading}
-              placeholder="Describe your product..."
-              helperText={`${formData.description.length}/2000 characters`}
-            />
-          </Box>
-        </DialogContent>
+        {/* Product Variants */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Product Variants
+            </label>
+            <button
+              type="button"
+              onClick={addVariant}
+              className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Variant
+            </button>
+          </div>
 
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
+          {formData.variants.map((variant, variantIndex) => (
+            <div key={variantIndex} className="border border-gray-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <input
+                  type="text"
+                  value={variant.name}
+                  onChange={(e) => updateVariant(variantIndex, 'name', e.target.value)}
+                  placeholder="Variant name (e.g., Size, Color)"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeVariant(variantIndex)}
+                  className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {variant.options.map((option, optionIndex) => (
+                  <div key={optionIndex} className="flex items-center">
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => updateVariantOption(variantIndex, optionIndex, e.target.value)}
+                      placeholder="Option value"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVariantOption(variantIndex, optionIndex)}
+                      className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Minus size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addVariantOption(variantIndex)}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  + Add Option
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Specifications */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Specifications
+            </label>
+            <button
+              type="button"
+              onClick={addSpecification}
+              className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Specification
+            </button>
+          </div>
+
+          {formData.specifications.map((spec, index) => (
+            <div key={index} className="flex items-center mb-3">
+              <input
+                type="text"
+                value={spec.key}
+                onChange={(e) => updateSpecification(index, 'key', e.target.value)}
+                placeholder="Specification name"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mr-2"
+              />
+              <input
+                type="text"
+                value={spec.value}
+                onChange={(e) => updateSpecification(index, 'value', e.target.value)}
+                placeholder="Specification value"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mr-2"
+              />
+              <button
+                type="button"
+                onClick={() => removeSpecification(index)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            {loading ? 'Saving...' : (editProduct ? 'Update Product' : 'Create Product')}
-          </Button>
-        </DialogActions>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {initialData ? 'Update Product' : 'Create Product'}
+          </button>
+        </div>
       </form>
-    </Dialog>
+    </div>
   );
 };
 

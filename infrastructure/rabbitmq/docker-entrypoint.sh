@@ -15,7 +15,16 @@ sleep 15
 echo "Configuring E-Ticaret specific settings..."
 
 # Wait for RabbitMQ to be fully ready
-rabbitmqctl wait --timeout 60 $RABBITMQ_PID_FILE
+rabbitmqctl wait --timeout 60
+
+# Delete default guest user for security
+rabbitmqctl delete_user guest || true
+
+# Create admin user with proper permissions
+rabbitmqctl add_user admin admin123 || true
+rabbitmqctl change_password admin admin123
+rabbitmqctl set_user_tags admin administrator
+rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
 
 # Create additional users if needed
 # rabbitmqctl add_user eticaret_user eticaret_pass

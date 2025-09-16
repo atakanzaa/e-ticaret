@@ -9,9 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("")
 public class CatalogController {
 
     private final ProductService productService;
@@ -34,7 +35,9 @@ public class CatalogController {
                                                   @RequestParam(required = false) String sort,
                                                   @RequestParam(defaultValue = "1") int page) {
         // min/max/attrs ignored in in-memory impl
-        return ResponseEntity.ok(productService.list(category, q, sort, page));
+        // q parametresini güvenli hale getir
+        String safeQuery = (q != null && !q.isBlank()) ? q.trim() : null;
+        return ResponseEntity.ok(productService.list(category, safeQuery, sort, page));
     }
 
     @GetMapping("/products/{slug}")

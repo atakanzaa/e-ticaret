@@ -34,36 +34,27 @@ spring:
         - id: order-payment-service
           uri: ${ORDER_PAYMENT_SERVICE_URL:http://order-payment:8086}
           predicates:
-            - Path=/api/order/**,/api/payment/**
+            - Path=/api/order/**,/api/orders/**,/api/payment/**
           filters:
             - RewritePath=/api/order/(?<segment>.*), /$\{segment}
+            - RewritePath=/api/orders/(?<segment>.*), /$\{segment}
             - RewritePath=/api/payment/(?<segment>.*), /$\{segment}
+            
+        # Seller Service Routes
+        - id: seller-service
+          uri: ${SELLER_SERVICE_URL:http://seller:8083}
+          predicates:
+            - Path=/api/seller/**,/api/sellers/**
+          filters:
+            - RewritePath=/api/seller/(?<segment>.*), /$\{segment}
+            - RewritePath=/api/sellers/(?<segment>.*), /$\{segment}
       globalcors:
         corsConfigurations:
           '[/**]':
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-            allowedOrigins:
-              - "http://localhost:3000"
-              - "http://localhost:8080"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
-              - HEAD
-            allowedHeaders:
-              - "*"
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
             allowCredentials: true
-            exposedHeaders:
-              - "X-Total-Count"
-              - "X-Page-Number"
-              - "X-Page-Size"
-              - "Authorization"
-              - "Content-Type"
             maxAge: 3600
       discovery:
         locator:
