@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, Plus, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
-import { mockProducts } from '../../data/mockData';
+import { useEffect, useState } from 'react';
+import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardCard } from '../../components/common/DashboardCard';
 import { Button } from '../../components/ui/Button';
@@ -10,9 +11,20 @@ import { Card } from '../../components/ui/Card';
 
 export function SellerDashboard() {
   const { user } = useAuth();
-  
-  const sellerProducts = mockProducts.filter(p => p.sellerId === user?.id);
-  const totalValue = sellerProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+  const [sellerProducts, setSellerProducts] = useState<any[]>([]);
+  const [totalValue, setTotalValue] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const store = await api.getMyStore();
+        const products = await api.getStoreProducts(store.id);
+        setSellerProducts(products);
+        const total = products.reduce((sum: number, p: any) => sum + (Number(p.price) * Number((p.quantity ?? p.stock ?? 0))), 0);
+        setTotalValue(total);
+      } catch (e) {}
+    })();
+  }, []);
   const totalSales = 1250; // Mock data
   const monthlyGrowth = "+15%";
 

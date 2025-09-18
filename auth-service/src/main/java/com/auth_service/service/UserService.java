@@ -25,6 +25,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailPublisher emailPublisher;
+    private final SellerServiceClient sellerServiceClient;
     
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -53,6 +54,15 @@ public class UserService {
                 .jwt(jwt)
                 .refresh(refresh)
                 .build();
+
+        // If requested, create seller application
+        try {
+            if ("seller".equalsIgnoreCase(request.getRole()) || Boolean.TRUE.equals(request.getApplyAsSeller())) {
+                sellerServiceClient.createApplication(user.getId());
+            }
+        } catch (Exception e) {
+            log.warn("Seller application creation failed during register for user {}", user.getId(), e);
+        }
 
         // Send welcome/verification email
         emailPublisher.publishEmail(Map.of(

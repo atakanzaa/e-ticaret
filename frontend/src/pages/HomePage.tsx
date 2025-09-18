@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter } from 'lucide-react';
-import { mockProducts } from '../data/mockData';
+import { useEffect } from 'react';
+import { api } from '../api/client';
 import { ProductCard } from '../components/common/ProductCard';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -10,12 +11,20 @@ export function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState('');
+  const [products, setProducts] = useState<any[]>([]);
 
-  const categories = [...new Set(mockProducts.map(p => p.category))];
+  useEffect(() => {
+    (async () => {
+      const list = await api.listProducts({ q: searchTerm, category: selectedCategory || undefined });
+      setProducts(list);
+    })();
+  }, []);
 
-  const filteredProducts = mockProducts.filter(product => {
-    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const categories = [...new Set(products.map(p => p.category))];
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = (product.title?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+                         (product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesCategory = !selectedCategory || product.category === selectedCategory;
     
     let matchesPrice = true;

@@ -11,6 +11,7 @@ const SignupForm: FC<SignupFormProps> = ({ onSignup, onSwitchToLogin }) => {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     accountType: 'customer'
@@ -29,11 +30,8 @@ const SignupForm: FC<SignupFormProps> = ({ onSignup, onSwitchToLogin }) => {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      onSignup(formData);
-      setIsLoading(false);
-    }, 1000);
+    onSignup(formData);
+    setIsLoading(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -102,6 +100,22 @@ const SignupForm: FC<SignupFormProps> = ({ onSignup, onSwitchToLogin }) => {
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                   placeholder="Enter your email"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="w-full pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                  placeholder="e.g. +905551234567"
                 />
               </div>
             </div>

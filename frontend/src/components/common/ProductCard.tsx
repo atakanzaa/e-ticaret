@@ -28,7 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
       transition={{ duration: 0.2 }}
     >
       <Card hover className="overflow-hidden">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/product/${product.slug || product.id}`}>
           <div className="aspect-w-16 aspect-h-12">
             <img
               src={product.image || product.images?.[0]}

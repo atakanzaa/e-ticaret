@@ -1,4 +1,5 @@
 -- Create order_payment schema
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS order_payment;
 
 -- Payments table
@@ -119,3 +120,29 @@ CREATE INDEX IF NOT EXISTS idx_payment_items_payment_id ON order_payment.payment
 CREATE INDEX IF NOT EXISTS idx_webhook_events_payment_id ON order_payment.webhook_events(payment_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_events_conversation_id ON order_payment.webhook_events(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_webhook_events_processed_at ON order_payment.webhook_events(processed_at) WHERE processed_at IS NULL;
+
+-- Invoices
+CREATE TABLE IF NOT EXISTS order_payment.invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES order_payment.orders(id) ON DELETE CASCADE,
+    invoice_no VARCHAR(50) UNIQUE NOT NULL,
+    billing_name VARCHAR(200) NOT NULL,
+    billing_tax_no VARCHAR(50),
+    billing_address TEXT NOT NULL,
+    total_amount NUMERIC(12,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'TRY',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS order_payment.invoice_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID NOT NULL REFERENCES order_payment.invoices(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price NUMERIC(10,2) NOT NULL,
+    total_price NUMERIC(10,2) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON order_payment.invoices(order_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON order_payment.invoice_items(invoice_id);

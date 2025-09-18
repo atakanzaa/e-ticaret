@@ -24,7 +24,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const handleProductClick = () => {
-    navigate(`/products/${product.id}`); // In real app, this would be slug
+    navigate(`/products/${product.slug || product.id}`);
   };
 
   if (viewMode === 'list') {
@@ -155,7 +155,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/products/${product.id}`);
+              navigate(`/products/${product.slug || product.id}`);
             }}
             className="bg-white rounded-full p-2 shadow-md hover:bg-blue-50 transition-colors"
           >

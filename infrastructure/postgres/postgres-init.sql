@@ -8,6 +8,7 @@ CREATE SCHEMA IF NOT EXISTS seller;
 CREATE SCHEMA IF NOT EXISTS review;
 CREATE SCHEMA IF NOT EXISTS search;
 CREATE SCHEMA IF NOT EXISTS order_payment;
+CREATE SCHEMA IF NOT EXISTS notification;
 
 GRANT ALL PRIVILEGES ON SCHEMA auth TO postgres;
 GRANT ALL PRIVILEGES ON SCHEMA catalog TO postgres;
@@ -15,6 +16,7 @@ GRANT ALL PRIVILEGES ON SCHEMA seller TO postgres;
 GRANT ALL PRIVILEGES ON SCHEMA review TO postgres;
 GRANT ALL PRIVILEGES ON SCHEMA search TO postgres;
 GRANT ALL PRIVILEGES ON SCHEMA order_payment TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA notification TO postgres;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA auth GRANT ALL ON TABLES TO postgres;
 ALTER DEFAULT PRIVILEGES IN SCHEMA catalog GRANT ALL ON TABLES TO postgres;
@@ -22,5 +24,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA seller GRANT ALL ON TABLES TO postgres;
 ALTER DEFAULT PRIVILEGES IN SCHEMA review GRANT ALL ON TABLES TO postgres;
 ALTER DEFAULT PRIVILEGES IN SCHEMA search GRANT ALL ON TABLES TO postgres;
 ALTER DEFAULT PRIVILEGES IN SCHEMA order_payment GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA notification GRANT ALL ON TABLES TO postgres;
 
-ALTER DATABASE eticaret SET search_path TO auth, catalog, seller, review, search, order_payment, public;
+ALTER DATABASE eticaret SET search_path TO auth, catalog, seller, review, search, order_payment, notification, public;

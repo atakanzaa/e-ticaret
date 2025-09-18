@@ -13,7 +13,8 @@ export function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user' as 'user' | 'seller'
+    role: 'user' as 'user' | 'seller',
+    phone: ''
   });
   const [error, setError] = useState('');
   const { register, loading } = useAuth();
@@ -49,7 +50,8 @@ export function RegisterPage() {
       formData.email,
       formData.password,
       formData.username,
-      formData.role
+      formData.role === 'user' ? 'customer' : 'seller',
+      formData.phone
     );
 
     if (success) {
@@ -107,6 +109,18 @@ export function RegisterPage() {
                 className="pl-10"
               />
               <Mail className="absolute left-3 top-8 h-5 w-5 text-gray-400" />
+            </div>
+
+            <div className="relative">
+              <Input
+                type="tel"
+                name="phone"
+                label="Phone number"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="e.g. +905551234567"
+                className="pl-10"
+              />
             </div>
 
             <div className="relative">

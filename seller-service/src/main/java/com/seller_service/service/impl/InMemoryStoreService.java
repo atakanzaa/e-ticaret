@@ -1,5 +1,6 @@
 package com.seller_service.service.impl;
 
+import com.seller_service.service.AuthServiceClient;
 import com.seller_service.service.StoreService;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,11 @@ public class InMemoryStoreService implements StoreService {
 
     private final Map<UUID, Map<String, Object>> applications = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, Object>> stores = new ConcurrentHashMap<>();
+    private final AuthServiceClient authServiceClient;
+
+    public InMemoryStoreService(AuthServiceClient authServiceClient) {
+        this.authServiceClient = authServiceClient;
+    }
 
     @Override
     public Map<String, Object> createApplication(UUID userId) {
@@ -33,6 +39,13 @@ public class InMemoryStoreService implements StoreService {
         Map<String, Object> app = applications.get(id);
         if (app == null) return Optional.empty();
         app.put("status", status);
+        // On approve, promote user to SELLER role as well
+        if ("APPROVED".equalsIgnoreCase(status)) {
+            UUID userId = (UUID) app.get("userId");
+            if (userId != null) {
+                authServiceClient.setUserSellerRole(userId);
+            }
+        }
         return Optional.of(app);
     }
 

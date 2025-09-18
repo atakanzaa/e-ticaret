@@ -1,14 +1,43 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Users, Store, Package, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
-import { mockDashboardStats, mockUsers } from '../../data/mockData';
+import { mockDashboardStats } from '../../data/mockData';
+import { useEffect, useState } from 'react';
+import { api } from '../../api/client';
 import { DashboardCard } from '../../components/common/DashboardCard';
 import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
 export function AdminDashboard() {
   const stats = mockDashboardStats;
-  const sellers = mockUsers.filter(u => u.role === 'seller');
-  const users = mockUsers.filter(u => u.role === 'user');
+  const [sellers, setSellers] = useState<Array<{ id: string; email: string; name: string; roles: string[] }>>([]);
+  const [users, setUsers] = useState<Array<{ id: string; email: string; name: string; roles: string[] }>>([]);
+  const [applications, setApplications] = useState<Array<{ id: string; userId: string; status: string }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [all, apps] = await Promise.all([
+        api.listUsers(),
+        api.listSellerApplications(),
+      ]);
+      setSellers(all.filter(u => (u.roles || []).includes('SELLER')));
+      setUsers(all.filter(u => !(u.roles || []).includes('ADMIN') && !(u.roles || []).includes('SELLER')));
+      setApplications(apps);
+    })();
+  }, []);
+
+  const pendingApps = applications.filter(a => a.status === 'PENDING');
+
+  const handleApprove = async (applicationId: string, userId: string) => {
+    await api.updateSellerApplication(applicationId, 'APPROVED');
+    await api.toggleUserRole(userId, true);
+    setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, status: 'APPROVED' } : a));
+  };
+
+  const handleReject = async (applicationId: string) => {
+    await api.updateSellerApplication(applicationId, 'REJECTED');
+    setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, status: 'REJECTED' } : a));
+  };
 
   const recentActivity = [
     { id: '1', type: 'user_registered', message: 'New user registered: John Smith', time: '2 hours ago' },
@@ -92,39 +121,32 @@ export function AdminDashboard() {
               </div>
             </Card>
 
-            {/* Top Sellers */}
+            {/* Waiting Applications */}
             <Card className="p-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Top Sellers
+                Waiting Applications
               </h2>
+              <div className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+                Pending: <span className="font-semibold">{pendingApps.length}</span>
+              </div>
               <div className="space-y-4">
-                {sellers.map((seller, index) => (
-                  <div key={seller.id} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">
-                          {seller.username.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {seller.username}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {seller.email}
-                        </p>
-                      </div>
+                {pendingApps.slice(0, 5).map((app) => (
+                  <div key={app.id} className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <div className="font-medium text-gray-900 dark:text-white">Application #{app.id.substring(0, 8)}</div>
+                      <div className="text-gray-500">User: {app.userId}</div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        ${(Math.random() * 10000).toFixed(2)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        This month
-                      </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprove(app.id, app.userId)}>Approve</Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={() => handleReject(app.id)}>Reject</Button>
                     </div>
                   </div>
                 ))}
+                {pendingApps.length === 0 && (
+                  <div className="text-sm text-gray-500">
+                    No pending applications.
+                  </div>
+                )}
               </div>
             </Card>
           </div>

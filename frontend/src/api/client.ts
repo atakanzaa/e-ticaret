@@ -1,5 +1,5 @@
 /* Lightweight API client with auth and helpers */
-import { Product, User } from '../types';
+import { Product, User, Address } from '../types';
 import { API_CONFIG } from '../config/api';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
@@ -75,6 +75,7 @@ function toProduct(ui: any, featured = false): Product {
 
   const product: Product = {
     id: ui.id || ui.productId || crypto.randomUUID(),
+    slug: ui.slug || ui.id || ui.productId || '',
     name: ui.name || 'Unnamed',
     description: ui.description || '',
     price: Number(ui.price ?? 0),
@@ -116,6 +117,8 @@ export const api = {
     email: string;
     password: string;
     name: string;
+    phone?: string;
+    role?: 'customer' | 'seller';
   }): Promise<{ token: string }> {
     const data = await request<{ jwt: string }>('/api/auth/register', {
       method: 'POST',
@@ -147,6 +150,20 @@ export const api = {
   // User
   async userMe(): Promise<User> {
     return request('/api/user/me');
+  },
+
+  // Addresses (Auth Service)
+  async listAddresses(): Promise<Address[]> {
+    return request('/api/auth/addresses');
+  },
+  async createAddress(dto: Omit<Address, 'id' | 'createdAt' | 'updatedAt'>): Promise<Address> {
+    return request('/api/auth/addresses', { method: 'POST', body: JSON.stringify(dto) });
+  },
+  async updateAddress(id: string, dto: Omit<Address, 'id' | 'createdAt' | 'updatedAt'>): Promise<Address> {
+    return request(`/api/auth/addresses/${id}`, { method: 'PUT', body: JSON.stringify(dto) });
+  },
+  async deleteAddress(id: string): Promise<void> {
+    await request(`/api/auth/addresses/${id}`, { method: 'DELETE' });
   },
 
   // Orders
@@ -333,11 +350,19 @@ export const api = {
   },
 
   // Seller Application
-  async applyForSeller(applicationData: FormData): Promise<void> {
+  async applyForSeller(userId: string): Promise<void> {
     await request('/api/seller/apply', {
       method: 'POST',
-      body: applicationData,
-      headers: {}, // Remove Content-Type to let browser set it for FormData
+      headers: { 'X-User-Id': userId },
+    });
+  },
+  async listSellerApplications(): Promise<Array<{ id: string; userId: string; status: string }>> {
+    return request('/api/seller/applications');
+  },
+  async updateSellerApplication(id: string, status: 'APPROVED' | 'REJECTED' | 'PENDING'): Promise<any> {
+    return request(`/api/seller/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     });
   },
 
@@ -355,8 +380,19 @@ export const api = {
       body: JSON.stringify({ isActive }),
     });
   },
+  async listSellers(): Promise<Array<{ id: string; email: string; name: string; roles: string[] }>> {
+    const page = await request<{ content: Array<{ id: string; email: string; name: string; roles: string[] }> }>(`/api/auth/users?role=SELLER`);
+    return page.content;
+  },
+  async toggleUserRole(userId: string, enableSeller: boolean): Promise<void> {
+    const roles = enableSeller ? ['USER', 'SELLER'] : ['USER'];
+    await request(`/api/auth/users/${userId}/roles`, { method: 'PATCH', body: JSON.stringify({ roles }) });
+  },
   async listUsers(): Promise<Array<{ id: string; email: string; name: string; roles: string[] }>> {
-    return request('/api/auth/users');
+    const res = await request<any>('/api/auth/users');
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.content)) return res.content;
+    return [];
   },
   async deleteUser(id: string): Promise<void> {
     await request(`/api/auth/users/${id}`, { method: 'DELETE' });

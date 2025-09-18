@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart, Plus, Minus } from 'lucide-react';
-import { mockProducts } from '../data/mockData';
+import { useEffect } from 'react';
+import { api } from '../api/client';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ReviewCard } from '../components/common/ReviewCard';
@@ -13,10 +14,17 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [selectedImage, setSelectedImage] = useState<number>(0);
   const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState<any | null>(null);
   const { addToCart } = useCart();
   const { user } = useAuth();
 
-  const product = mockProducts.find(p => p.id === id);
+  useEffect(() => {
+    (async () => {
+      if (!id) return;
+      const data = await api.getProductBySlug(id);
+      setProduct(data);
+    })();
+  }, [id]);
 
   if (!product) {
     return (
@@ -29,6 +37,7 @@ export function ProductDetailPage() {
   }
 
   const handleAddToCart = () => {
+    if (!product) return;
     addToCart(product, quantity);
   };
 
@@ -49,14 +58,14 @@ export function ProductDetailPage() {
           <div className="space-y-4">
             <Card className="overflow-hidden">
               <img
-                src={product.images[selectedImage]}
+                src={product.images?.[selectedImage] || product.image}
                 alt={((product as any).title ?? (product as any).name) as string}
                 className="w-full h-96 object-cover"
               />
             </Card>
             {product.images.length > 1 && (
               <div className="flex space-x-2">
-                {product.images.map((image, index) => (
+                {product.images.map((image: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}

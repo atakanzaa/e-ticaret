@@ -2,16 +2,25 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Edit, Trash2, Plus, Eye } from 'lucide-react';
-import { mockProducts } from '../../data/mockData';
+import { useEffect } from 'react';
+import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
 export function ProductManagement() {
   const { user } = useAuth();
-  const [sellerProducts, setSellerProducts] = useState(
-    mockProducts.filter(p => p.sellerId === user?.id)
-  );
+  const [sellerProducts, setSellerProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const store = await api.getMyStore();
+        const products = await api.getStoreProducts(store.id);
+        setSellerProducts(products);
+      } catch (e) {}
+    })();
+  }, []);
 
   const handleDeleteProduct = (productId: string) => {
     setSellerProducts(prev => prev.filter(p => p.id !== productId));
@@ -62,20 +71,20 @@ export function ProductManagement() {
                   <Card className="p-6">
                     <div className="flex items-center space-x-6">
                       <img
-                        src={product.images[0]}
-                        alt={product.title}
+                        src={product.images?.[0] || product.image}
+                        alt={(product as any).title || product.name}
                         className="w-24 h-24 object-cover rounded-lg"
                       />
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                          {product.title}
+                          {(product as any).title || product.name}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 mb-2">
                           {product.description.substring(0, 100)}...
                         </p>
                         <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                           <span>Price: ${product.price.toFixed(2)}</span>
-                          <span>Stock: {product.quantity}</span>
+                          <span>Stock: {(product as any).quantity ?? product.stock}</span>
                           <span>Category: {product.category}</span>
                         </div>
                       </div>

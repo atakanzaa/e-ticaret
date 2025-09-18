@@ -7,10 +7,9 @@ services:
       dockerfile: Dockerfile
     image: postgres-service:latest
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
 
   zookeeper:
     build:

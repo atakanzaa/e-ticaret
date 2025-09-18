@@ -5,7 +5,7 @@ import { api } from '../api/client';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, username: string, role: 'customer' | 'seller') => Promise<boolean>;
+  register: (email: string, password: string, username: string, role: 'customer' | 'seller', phone?: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
 }
@@ -62,14 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, username: string, role: 'customer' | 'seller'): Promise<boolean> => {
+  const register = async (email: string, password: string, username: string, role: 'customer' | 'seller', phone?: string): Promise<boolean> => {
     setLoading(true);
     
     try {
       const response = await api.register({
         email,
         password,
-        name: username
+        name: username,
+        phone,
+        role
       });
       
       // Store token first
@@ -80,6 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Fetch user data after successful registration
       const userData = await api.me();
+      // If role is seller, create a seller application so it appears in admin panel
+      try {
+        if (role === 'seller') {
+          await api.applyForSeller(userData.id);
+        }
+      } catch (e) {
+        console.warn('Seller application could not be created automatically:', e);
+      }
       setUser(userData);
       
       setLoading(false);

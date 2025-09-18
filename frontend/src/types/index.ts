@@ -11,6 +11,7 @@ export interface User {
 
 export interface Product {
   id: string;
+  slug: string;
   name: string;
   description: string;
   price: number;
@@ -32,6 +33,22 @@ export interface Product {
   reviews?: Review[];
   sellerId?: string;
   sellerName?: string;
+}
+
+export interface Address {
+  id: string;
+  type: 'SHIPPING' | 'BILLING';
+  recipientName: string;
+  phone?: string;
+  country: string;
+  state?: string;
+  city: string;
+  postalCode: string;
+  streetLine1: string;
+  streetLine2?: string;
+  isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Review {
