@@ -40,7 +40,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   // Get token fresh every time to avoid timing issues
   const token = getAuthToken();
-  if (token) {
+  const isAuthPublic = path.startsWith('/api/auth/register') || path.startsWith('/api/auth/login') || path.startsWith('/api/auth/google');
+  if (token && !isAuthPublic) {
     headers['Authorization'] = `Bearer ${token}`;
     console.log(`API Request to ${path} with token:`, token.substring(0, 50) + '...');
   } else {
@@ -130,21 +131,28 @@ export const api = {
   async me(): Promise<User> {
     const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
-    // Prefer role claim from JWT if present
     const claims = parseJwt(token) || {};
     let role: User['role'] | undefined;
     if (Array.isArray(claims.roles)) {
       role = claims.roles.includes('ADMIN') ? 'admin' : (claims.roles.includes('SELLER') ? 'seller' : 'customer');
     } else if (typeof claims.role === 'string') {
-      const r = claims.role.toUpperCase();
+      const r = String(claims.role).toUpperCase();
       role = r === 'ADMIN' ? 'admin' : r === 'SELLER' ? 'seller' : 'customer';
     }
-    const me = await request<{ id: string; email: string; name: string; roles?: string[] }>('/api/auth/me');
-    if (!role) {
-      const roles = me.roles || [];
-      role = roles.includes('ADMIN') ? 'admin' : (roles.includes('SELLER') ? 'seller' : 'customer');
+    try {
+      const me = await request<{ id: string; email: string; name: string; roles?: string[] }>('/api/auth/me');
+      if (!role) {
+        const roles = me.roles || [];
+        role = roles.includes('ADMIN') ? 'admin' : (roles.includes('SELLER') ? 'seller' : 'customer');
+      }
+      return { id: me.id, email: me.email, name: me.name, role: role as User['role'] };
+    } catch (error) {
+      console.warn('api.me() falling back to JWT claims due to error:', error);
+      const id = String((claims.sub || claims.userId || claims.id || 'me'));
+      const email = String((claims.email || 'user@local'));
+      const name = String((claims.name || claims.username || email.split('@')[0] || 'User'));
+      return { id, email, name, role: (role || 'customer') as User['role'] };
     }
-    return { id: me.id, email: me.email, name: me.name, role: role as User['role'] };
   },
 
   // User

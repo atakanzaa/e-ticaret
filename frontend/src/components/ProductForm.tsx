@@ -140,6 +140,26 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, onCancel, initialDa
     onSubmit(formData);
   };
 
+  const handleFilesSelected = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const base64List: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const b64 = await toBase64(files[i]);
+        base64List.push(b64);
+      } catch {}
+    }
+    if (base64List.length > 0) {
+      setFormData(prev => ({ ...prev, images: [...prev.images, ...base64List] }));
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
@@ -258,6 +278,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, onCancel, initialDa
               accept="image/*"
               className="hidden"
               id="image-upload"
+            onChange={(e) => handleFilesSelected(e.target.files)}
             />
             <label
               htmlFor="image-upload"
@@ -267,6 +288,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, onCancel, initialDa
             </label>
           </div>
         </div>
+
+        {formData.images.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {formData.images.map((img, i) => (
+              <div key={i} className="relative group">
+                <img src={img} alt={`preview-${i}`} className="w-full h-28 object-cover rounded-lg border" />
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }))}
+                  className="absolute top-2 right-2 bg-white/80 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition"
+                  title="Remove"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Product Variants */}
         <div>

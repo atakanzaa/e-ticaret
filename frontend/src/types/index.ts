@@ -61,9 +61,15 @@ export interface Review {
 }
 
 export interface CartItem {
+  id?: string;
   productId: string;
   quantity: number;
   product: Product;
+  // Additional fields for compatibility
+  name?: string;
+  title?: string;
+  image?: string;
+  unitPrice?: number;
 }
 
 export interface Order {
@@ -89,4 +95,13 @@ export interface DashboardStats {
   totalSellers: number;
   totalProducts: number;
   profitLoss: number;
+}
+
+export interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
 }

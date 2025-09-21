@@ -4,14 +4,14 @@ import { motion } from 'framer-motion';
 import { Star, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { useEffect } from 'react';
 import { api } from '../api/client';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/UnifiedCartContext';
+import { useAuth } from '../context/UnifiedAuthContext';
 import { ReviewCard } from '../components/common/ReviewCard';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 
 export function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [selectedImage, setSelectedImage] = useState<number>(0);
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<any | null>(null);
@@ -20,11 +20,11 @@ export function ProductDetailPage() {
 
   useEffect(() => {
     (async () => {
-      if (!id) return;
-      const data = await api.getProductBySlug(id);
+      if (!slug) return;
+      const data = await api.getProductBySlug(slug);
       setProduct(data);
     })();
-  }, [id]);
+  }, [slug]);
 
   if (!product) {
     return (

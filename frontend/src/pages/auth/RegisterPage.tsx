@@ -2,36 +2,28 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Store } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/UnifiedAuthContext';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
 export function RegisterPage() {
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user' as 'user' | 'seller',
-    phone: ''
+    role: 'customer' as 'customer' | 'seller'
   });
   const [error, setError] = useState('');
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.name || !formData.email || !formData.password) {
       setError('Please fill in all fields');
       return;
     }
@@ -46,19 +38,25 @@ export function RegisterPage() {
       return;
     }
 
+    // register fonksiyonu 4-5 argüman bekliyor, eksik argüman hatasını düzeltelim
     const success = await register(
+      formData.name,
       formData.email,
       formData.password,
-      formData.username,
-      formData.role === 'user' ? 'customer' : 'seller',
-      formData.phone
+      formData.role
     );
-
     if (success) {
-      navigate(formData.role === 'seller' ? '/seller/dashboard' : '/');
+      navigate('/');
     } else {
-      setError('User with this email already exists');
+      setError('Kayıt başarısız. Lütfen tekrar deneyin.');
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   return (
@@ -73,8 +71,11 @@ export function RegisterPage() {
             <Store className="h-12 w-12 text-blue-600" />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-            Join ShopHub
+            Create your account
           </h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Join ShopHub and start your shopping journey
+          </p>
         </div>
 
         <Card className="p-8">
@@ -88,11 +89,11 @@ export function RegisterPage() {
             <div className="relative">
               <Input
                 type="text"
-                name="username"
-                label="Username"
-                value={formData.username}
+                name="name"
+                label="Full Name"
+                value={formData.name}
                 onChange={handleChange}
-                placeholder="Enter your username"
+                placeholder="Enter your full name"
                 className="pl-10"
               />
               <User className="absolute left-3 top-8 h-5 w-5 text-gray-400" />
@@ -109,18 +110,6 @@ export function RegisterPage() {
                 className="pl-10"
               />
               <Mail className="absolute left-3 top-8 h-5 w-5 text-gray-400" />
-            </div>
-
-            <div className="relative">
-              <Input
-                type="tel"
-                name="phone"
-                label="Phone number"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="e.g. +905551234567"
-                className="pl-10"
-              />
             </div>
 
             <div className="relative">
@@ -159,7 +148,7 @@ export function RegisterPage() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
-                <option value="user">Customer</option>
+                <option value="customer">Customer</option>
                 <option value="seller">Seller</option>
               </select>
             </div>

@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingCart, User, Sun, Moon, Store, BarChart3, LogOut, ChevronDown } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/UnifiedAuthContext';
+import { useCart } from '../../context/UnifiedCartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../ui/Button';
 
@@ -15,7 +15,7 @@ export function Navbar() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   return (
@@ -83,10 +83,25 @@ export function Navbar() {
                     <ChevronDown className="h-4 w-4 ml-2" />
                   </Button>
                   {open && (
-                    <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
-                      <Link to="/profile" className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => setOpen(false)}>My Profile</Link>
-                      <Link to="/orders" className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => setOpen(false)}>My Orders</Link>
-                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center" onClick={handleLogout}>
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
+                      {user.role === 'admin' && (
+                        <Link to="/admin/dashboard" className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => setOpen(false)}>
+                          ⚙️ Admin Dashboard
+                        </Link>
+                      )}
+                      {user.role === 'seller' && (
+                        <Link to="/seller/dashboard" className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => setOpen(false)}>
+                          🏪 Seller Dashboard
+                        </Link>
+                      )}
+                      <Link to="/profile" className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => setOpen(false)}>
+                        👤 My Profile
+                      </Link>
+                      <Link to="/orders" className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => setOpen(false)}>
+                        📦 My Orders
+                      </Link>
+                      <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center text-red-600 dark:text-red-400" onClick={handleLogout}>
                         <LogOut className="h-4 w-4 mr-2" /> Logout
                       </button>
                     </div>

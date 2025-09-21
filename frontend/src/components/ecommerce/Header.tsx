@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, ShoppingCart, User, Heart, Menu, X } from 'lucide-react';
 
 interface HeaderProps {
@@ -20,6 +20,20 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const categories = [
     'Electronics',
@@ -122,15 +136,50 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* User Account */}
             {isLoggedIn ? (
-              <button 
-                onClick={onProfileClick}
-                className="flex items-center space-x-2 p-2 text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User size={16} className="text-blue-600" />
-                </div>
-                <span className="hidden md:inline text-sm font-medium">Account</span>
-              </button>
+              <div className="relative" ref={profileRef}>
+                <button 
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center space-x-2 p-2 text-gray-600 hover:text-blue-600 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User size={16} className="text-blue-600" />
+                  </div>
+                  <span className="hidden md:inline text-sm font-medium">Account</span>
+                </button>
+                
+                {/* Profile Dropdown */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-lg p-2 space-y-1 min-w-[200px] z-50">
+                    {userType === 'seller' && (
+                      <a 
+                        href="/seller/dashboard" 
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        🏪 Seller Dashboard
+                      </a>
+                    )}
+                    {userType === 'admin' && (
+                      <a 
+                        href="/admin/dashboard" 
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        ⚙️ Admin Panel
+                      </a>
+                    )}
+                    <button 
+                      onClick={() => {
+                        onProfileClick();
+                        setProfileDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                    >
+                      👤 My Profile
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button 
                 onClick={onLoginClick}

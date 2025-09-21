@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Package, Plus, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/UnifiedAuthContext';
 import { DashboardCard } from '../../components/common/DashboardCard';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -28,11 +28,23 @@ export function SellerDashboard() {
   const totalSales = 1250; // Mock data
   const monthlyGrowth = "+15%";
 
-  const recentOrders = [
-    { id: '1', product: 'Wireless Headphones', quantity: 2, total: 399.98, status: 'pending' },
-    { id: '2', product: 'Smart Watch', quantity: 1, total: 299.99, status: 'shipped' },
-    { id: '3', product: 'Coffee Beans', quantity: 3, total: 74.97, status: 'delivered' },
-  ];
+  const [recentOrders, setRecentOrders] = useState<Array<{ id: string; product: string; quantity: number; total: number; status: string }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const orders = await api.getMyOrders();
+        const normalized = (orders || []).slice(0, 3).map((o: any) => ({
+          id: o.id,
+          product: o.items?.[0]?.name || 'Order',
+          quantity: o.items?.[0]?.quantity || o.items?.reduce((s: number, it: any) => s + (it.quantity || 0), 0) || 1,
+          total: Number(o.totalAmount || 0),
+          status: String(o.status || 'pending').toLowerCase(),
+        }));
+        setRecentOrders(normalized);
+      } catch (e) {}
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

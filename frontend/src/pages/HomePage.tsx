@@ -18,9 +18,9 @@ export function HomePage() {
       const list = await api.listProducts({ q: searchTerm, category: selectedCategory || undefined });
       setProducts(list);
     })();
-  }, []);
+  }, [searchTerm, selectedCategory]);
 
-  const categories = [...new Set(products.map(p => p.category))];
+  const categories = [...new Set(products.map(p => p.category))].filter(Boolean);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = (product.title?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||

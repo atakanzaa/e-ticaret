@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Edit, Trash2, Plus, Eye } from 'lucide-react';
 import { useEffect } from 'react';
 import { api } from '../../api/client';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/UnifiedAuthContext';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
@@ -18,7 +18,13 @@ export function ProductManagement() {
         const store = await api.getMyStore();
         const products = await api.getStoreProducts(store.id);
         setSellerProducts(products);
-      } catch (e) {}
+      } catch (e) {
+        try {
+          const all = await api.listProducts();
+          const mine = all.filter((p: any) => true);
+          setSellerProducts(mine);
+        } catch {}
+      }
     })();
   }, []);
 
@@ -89,7 +95,7 @@ export function ProductManagement() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Link to={`/product/${product.id}`}>
+                        <Link to={`/products/${product.slug || product.id}`}>
                           <Button variant="ghost" size="sm">
                             <Eye className="h-4 w-4" />
                           </Button>

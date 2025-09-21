@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Address, User } from '../types';
+import { useAuth } from '../context/UnifiedAuthContext';
 
 export function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressForm, setAddressForm] = useState<Omit<Address, 'id' | 'createdAt' | 'updatedAt'>>({
@@ -22,8 +23,6 @@ export function ProfilePage() {
   useEffect(() => {
     (async () => {
       try {
-        const me = await api.userMe();
-        setUser(me as any);
         const addrs = await api.listAddresses();
         setAddresses(addrs as any);
       } catch (e) {

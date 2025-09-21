@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart } from 'lucide-react';
 import { Product } from '../../types';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/UnifiedCartContext';
+import { useAuth } from '../../context/UnifiedAuthContext';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
@@ -28,7 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
       transition={{ duration: 0.2 }}
     >
       <Card hover className="overflow-hidden">
-        <Link to={`/product/${product.slug || product.id}`}>
+        <Link to={`/products/${product.slug || product.id}`}>
           <div className="aspect-w-16 aspect-h-12">
             <img
               src={product.image || product.images?.[0]}
